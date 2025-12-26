@@ -29,10 +29,12 @@
 # EXPOSE 3000
 # CMD ["serve", "-s", ".", "-l", "3000"]
 
-============================================
-SSR Mode (Server-Side Rendering) - DISABLED
-============================================
-If you enable ssr: true in react-router.config.ts, use these instead:
+
+
+# ============================================
+# SSR Mode (Server-Side Rendering) - DISABLED
+# ============================================
+# If you enable ssr: true in react-router.config.ts, use these instead:
 FROM node:20-alpine AS development-dependencies-env
 RUN corepack enable pnpm
 COPY . /app
