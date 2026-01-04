@@ -35,12 +35,11 @@ export async function action({ request }: Route.ActionArgs) {
   const username = formData.get("username") as string;
   const password = formData.get("password") as string;
 
-  const response = await loginService({ username, password });
+  const response = await loginService({ email: username, password });
 
   const accessToken = response?.data?.token;
   if (!accessToken) {
-    session.flash("error", "Invalid username/password");
-
+    session.flash("error", "Invalid email/password");
     return redirect("/login", {
       headers: {
         "Set-Cookie": await commitSession(session),

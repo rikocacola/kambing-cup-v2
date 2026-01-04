@@ -1,19 +1,19 @@
 import { authenticatedFetch } from "../apiClient";
 
-export const postTournaments = async ({
+export const createTournament = async ({
   token,
   body,
 }: {
   token: string;
   body: {
     name: string;
-    file: any;
+    image: File;
   };
 }) => {
   try {
     const formData = new FormData();
     formData.append("name", body.name);
-    formData.append("file", body.file);
+    formData.append("image", body.image);
     const response = await authenticatedFetch({
       token,
       path: "tournament",
@@ -22,6 +22,7 @@ export const postTournaments = async ({
         body: formData,
       },
     });
+    console.log("response", response);
 
     if (!response.ok) {
       const error = await response.json();
@@ -32,7 +33,6 @@ export const postTournaments = async ({
     }
 
     const data = await response.json();
-    console.log("data", data);
     return { success: true, data, error: null };
   } catch (error) {
     return {
