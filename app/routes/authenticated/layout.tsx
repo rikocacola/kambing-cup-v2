@@ -12,6 +12,8 @@ export async function loader({ request }: Route.LoaderArgs) {
     return redirect("/login");
   }
   const userInfo = await getUserService({ token: accessToken });
+  console.log(userInfo, "userInfo---"); // --- IGNORE ---
+  console.log("accessToken", accessToken); // --- IGNORE ---
   return {
     userInfo,
   };

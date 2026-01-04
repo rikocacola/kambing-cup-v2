@@ -15,6 +15,8 @@ export const loginService = async (body: {
       return { success: false, error: error.message || "Login failed" };
     }
 
+    console.log(response, "response---"); // --- IGNORE ---
+
     const data: {
       token: string;
       exp_in: number;

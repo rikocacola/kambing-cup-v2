@@ -36,10 +36,8 @@ export async function action({ request }: Route.ActionArgs) {
   const password = formData.get("password") as string;
 
   const response = await loginService({ username, password });
-  console.log("response", response);
 
   const accessToken = response?.data?.token;
-  console.log("kesini kan?", accessToken);
   if (!accessToken) {
     session.flash("error", "Invalid username/password");
 
