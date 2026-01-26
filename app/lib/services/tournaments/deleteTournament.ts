@@ -1,12 +1,18 @@
 import { authenticatedFetch } from "../apiClient";
 
-export const getUserService = async ({ token }: { token: string }) => {
+export const deleteTournament = async ({
+  token,
+  id,
+}: {
+  token: string;
+  id: string;
+}) => {
   try {
     const response = await authenticatedFetch({
       token,
-      path: "user",
+      path: `tournament/${id}`,
       options: {
-        method: "GET",
+        method: "DELETE",
       },
     });
 
@@ -21,6 +27,9 @@ export const getUserService = async ({ token }: { token: string }) => {
     const data = await response.json();
     return { success: true, data, error: null };
   } catch (error) {
-    return { success: false, error: "An error occurred during fetching user!" };
+    return {
+      success: false,
+      error: "An error occurred during deleting tournament!",
+    };
   }
 };

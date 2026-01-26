@@ -1,7 +1,7 @@
 import { Outlet, redirect } from "react-router";
 
 import type { Route } from "./+types/layout";
-import { getSession } from "~/sessions.server";
+import { destroySession, getSession } from "~/sessions.server";
 import { getUserService } from "~/lib/services/user/getUserService";
 import Topbar from "~/lib/components/layouts/topbar";
 
@@ -12,8 +12,15 @@ export async function loader({ request }: Route.LoaderArgs) {
     return redirect("/login");
   }
   const userInfo = await getUserService({ token: accessToken });
-  console.log(userInfo, "userInfo---"); // --- IGNORE ---
-  console.log("accessToken", accessToken); // --- IGNORE ---
+  
+  if (userInfo.success === false) {
+    return redirect("/login", {
+      headers: {
+        "Set-Cookie": await destroySession(session),
+      },
+    });
+  }
+
   return {
     userInfo,
   };

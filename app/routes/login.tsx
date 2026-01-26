@@ -24,7 +24,7 @@ export async function loader({ request }: Route.ClientLoaderArgs) {
       headers: {
         "Set-Cookie": await commitSession(session),
       },
-    }
+    },
   );
 }
 

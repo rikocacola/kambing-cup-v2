@@ -10,8 +10,6 @@ export const getAllTournaments = async ({ token }: { token: string }) => {
       },
     });
 
-    console.log("response get", response);
-
     if (!response.ok) {
       const error = await response.json();
       return {
@@ -21,7 +19,6 @@ export const getAllTournaments = async ({ token }: { token: string }) => {
     }
 
     const data = await response.json();
-    console.log("data", data);
     return { success: true, data, error: null };
   } catch (error) {
     return {

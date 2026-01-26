@@ -6,6 +6,9 @@ import tsconfigPaths from "vite-tsconfig-paths";
 export default defineConfig({
   plugins: [tailwindcss(), reactRouter(), tsconfigPaths()],
   server: {
+    // Allow your custom domain
     port: 3000,
+    host: true,
+    allowedHosts: ["kambingcup.local", "kc.amaliah.id"],
   },
 });
