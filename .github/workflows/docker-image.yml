@@ -50,4 +50,12 @@ jobs:
           key: ${{ secrets.SSH_PRIVATE_KEY }}
           script: |
             docker pull ${{ secrets.DOCKER_HUB_USERNAME }}/kc-frontend-v2:latest
-            
+            docker stop kc-frontend-v2 || true
+            docker rm kc-frontend-v2 || true
+            docker run -d \
+              --name kc-frontend-v2 \
+              --restart unless-stopped \
+              -p 3000:3000 \
+              ${{ secrets.DOCKER_HUB_USERNAME }}/kc-frontend-v2:latest
+            docker image prune -f
+
