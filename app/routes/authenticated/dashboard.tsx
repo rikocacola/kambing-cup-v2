@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useActionData } from "react-router";
 import { getSession } from "~/sessions.server";
 import type { Route } from "./+types/dashboard";
 import { getAllTournaments } from "~/lib/services/tournaments/getAllTournaments";
@@ -52,7 +53,7 @@ export async function action({ request }: Route.ActionArgs) {
   if (action === "delete") {
     const tournamentId = formData.get("tournamentId") as string;
     const response = await deleteTournament({ token, id: tournamentId });
-    return response;
+    return { ...response, _action: "delete" };
   }
 
   // Default: create tournament
@@ -70,9 +71,17 @@ type Tournament = {
 
 const Dashboard = ({ loaderData }: Route.ComponentProps) => {
   const tournaments = loaderData.tournaments;
+  const actionData = useActionData<typeof action>();
   const [selectedTournament, setSelectedTournament] =
     useState<Tournament | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  useEffect(() => {
+    if (actionData?._action === "delete" && actionData?.success) {
+      setDialogOpen(false);
+      setSelectedTournament(null);
+    }
+  }, [actionData]);
 
   const handleTournamentClick = (tournament: Tournament) => {
     setSelectedTournament(tournament);

@@ -8,6 +8,7 @@ import {
 export default [
   index("routes/live-match.tsx"),
   route("/login", "routes/login.tsx"),
+  route("/logout", "routes/logout.tsx"),
   layout("routes/authenticated/layout.tsx", [
     route("dashboard", "routes/authenticated/dashboard.tsx"),
   ]),

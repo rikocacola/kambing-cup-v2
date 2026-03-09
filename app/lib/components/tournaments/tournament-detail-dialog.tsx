@@ -68,8 +68,12 @@ const TournamentDetailDialog = ({
           <Form method="POST" className="flex justify-end">
             <input type="hidden" name="tournamentId" value={tournament.id} />
             <input type="hidden" name="_action" value="delete" />
-            <Button type="submit" variant="destructive">
-              Delete
+            <Button
+              type="submit"
+              variant="destructive"
+              className="cursor-pointer"
+            >
+              Delete 123
             </Button>
           </Form>
         </div>
