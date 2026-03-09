@@ -12,7 +12,7 @@ env:
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    environment: production
+    environment: Production
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -42,7 +42,7 @@ jobs:
   deploy:
     needs: build-and-push
     runs-on: ubuntu-latest
-    environment: production
+    environment: Production
     steps:
       - name: SSH and Deploy
         uses: appleboy/ssh-action@v1.0.3
