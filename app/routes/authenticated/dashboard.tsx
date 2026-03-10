@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { useActionData } from "react-router";
+import { useEffect, useRef, useState } from "react";
+import { useActionData, useNavigate, useNavigation } from "react-router";
+import { Pencil } from "lucide-react";
 import { getSession } from "~/sessions.server";
 import type { Route } from "./+types/dashboard";
 import { getAllTournaments } from "~/lib/services/tournaments/getAllTournaments";
@@ -47,7 +48,7 @@ export async function action({ request }: Route.ActionArgs) {
     }
 
     const response = await updateTournament({ token, id: tournamentId, body });
-    return response;
+    return { ...response, _action: "update" };
   }
 
   if (action === "delete") {
@@ -59,8 +60,12 @@ export async function action({ request }: Route.ActionArgs) {
   // Default: create tournament
   const name = formData.get("name") as string;
   const image = formData.get("image") as File;
-  const response = await createTournament({ token, body: { name, image } });
-  return response;
+  const total_surah = formData.get("total_surah") as string;
+  const response = await createTournament({
+    token,
+    body: { name, image, total_surah },
+  });
+  return { ...response, _action: "create" };
 }
 
 type Tournament = {
@@ -72,18 +77,35 @@ type Tournament = {
 const Dashboard = ({ loaderData }: Route.ComponentProps) => {
   const tournaments = loaderData.tournaments;
   const actionData = useActionData<typeof action>();
+  const navigate = useNavigate();
+  const navigation = useNavigation();
+  const prevNavState = useRef(navigation.state);
   const [selectedTournament, setSelectedTournament] =
     useState<Tournament | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (actionData?._action === "delete" && actionData?.success) {
-      setDialogOpen(false);
-      setSelectedTournament(null);
+    if (prevNavState.current !== "idle" && navigation.state === "idle" && actionData) {
+      if ("_action" in actionData && actionData.success) {
+        if (actionData._action === "delete" || actionData._action === "update") {
+          setDialogOpen(false);
+          setSelectedTournament(null);
+        }
+        if (actionData._action === "create") {
+          setCreateDialogOpen(false);
+        }
+      }
     }
-  }, [actionData]);
+    prevNavState.current = navigation.state;
+  }, [navigation.state, actionData]);
 
   const handleTournamentClick = (tournament: Tournament) => {
+    navigate(`/dashboard/tournaments/${tournament.id}`);
+  };
+
+  const handleEditClick = (e: React.MouseEvent, tournament: Tournament) => {
+    e.stopPropagation();
     setSelectedTournament(tournament);
     setDialogOpen(true);
   };
@@ -92,14 +114,17 @@ const Dashboard = ({ loaderData }: Route.ComponentProps) => {
     <div>
       <div className="flex w-full justify-between">
         <h1>Dashboard</h1>
-        <DialogForm />
+        <DialogForm
+          open={createDialogOpen}
+          onOpenChange={setCreateDialogOpen}
+        />
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
         {tournaments?.data && tournaments?.data.length > 0 ? (
           tournaments?.data.map((tournament: Tournament) => (
             <div
               key={tournament.id}
-              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer"
+              className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer relative"
               onClick={() => handleTournamentClick(tournament)}
             >
               <img
@@ -107,8 +132,15 @@ const Dashboard = ({ loaderData }: Route.ComponentProps) => {
                 alt={tournament.name}
                 className="w-full h-48 object-cover"
               />
-              <div className="p-4">
+              <div className="p-4 flex items-center justify-between">
                 <h3 className="text-lg font-semibold">{tournament.name}</h3>
+                <button
+                  onClick={(e) => handleEditClick(e, tournament)}
+                  className="p-1.5 rounded-md hover:bg-gray-100 text-gray-500 hover:text-gray-800 transition-colors"
+                  aria-label="Edit tournament"
+                >
+                  <Pencil size={16} />
+                </button>
               </div>
             </div>
           ))

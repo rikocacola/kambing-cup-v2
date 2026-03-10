@@ -8,12 +8,14 @@ export const createTournament = async ({
   body: {
     name: string;
     image: File;
+    total_surah: string;
   };
 }) => {
   try {
     const formData = new FormData();
     formData.append("name", body.name);
     formData.append("image", body.image);
+    formData.append("total_surah", body.total_surah);
     const response = await authenticatedFetch({
       token,
       path: "tournament",
@@ -23,6 +25,7 @@ export const createTournament = async ({
       },
     });
 
+    console.log("Create Tournament Body:", body, formData);
     console.log("Create Tournament Response:", response);
 
     if (!response.ok) {

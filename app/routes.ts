@@ -11,5 +11,6 @@ export default [
   route("/logout", "routes/logout.tsx"),
   layout("routes/authenticated/layout.tsx", [
     route("dashboard", "routes/authenticated/dashboard.tsx"),
+    route("dashboard/tournaments/:id", "routes/authenticated/tournament-detail.tsx"),
   ]),
 ] satisfies RouteConfig;

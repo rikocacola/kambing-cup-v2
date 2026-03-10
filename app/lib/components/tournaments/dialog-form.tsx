@@ -10,9 +10,14 @@ import { Form } from "react-router";
 import { Label } from "@radix-ui/react-label";
 import { Input } from "../ui/input";
 
-const DialogForm = () => {
+type DialogFormProps = {
+  open: boolean;
+  onOpenChange: (open: boolean) => void;
+};
+
+const DialogForm = ({ open, onOpenChange }: DialogFormProps) => {
   return (
-    <Dialog>
+    <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogTrigger asChild>
         <Button>Create Tournament</Button>
       </DialogTrigger>
@@ -32,6 +37,10 @@ const DialogForm = () => {
           <div className="grid w-full max-w-sm items-center gap-2">
             <Label htmlFor="image">Image</Label>
             <Input type="file" id="image" name="image" accept="image/*" />
+          </div>
+          <div className="grid w-full max-w-sm items-center gap-2">
+            <Label htmlFor="image">Total Surah</Label>
+            <Input type="number" id="total_surah" name="total_surah" />
           </div>
           <Button type="submit">Create</Button>
         </Form>
