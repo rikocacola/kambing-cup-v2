@@ -24,8 +24,13 @@ export const deleteTournament = async ({
       };
     }
 
-    const data = await response.json();
-    return { success: true, data, error: null };
+    return {
+      success: true,
+      data: {
+        message: "Success Delete Tournament",
+      },
+      error: null,
+    };
   } catch (error) {
     return {
       success: false,

@@ -86,18 +86,19 @@ const Dashboard = ({ loaderData }: Route.ComponentProps) => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   useEffect(() => {
-    if (prevNavState.current !== "idle" && navigation.state === "idle" && actionData) {
-      if ("_action" in actionData && actionData.success) {
-        if (actionData._action === "delete" || actionData._action === "update") {
+    if (actionData?.success) {
+      if ("_action" in actionData) {
+        if (actionData._action === "create") {
+          setCreateDialogOpen(false);
+        } else if (
+          actionData._action === "delete" ||
+          actionData._action === "update"
+        ) {
           setDialogOpen(false);
           setSelectedTournament(null);
         }
-        if (actionData._action === "create") {
-          setCreateDialogOpen(false);
-        }
       }
     }
-    prevNavState.current = navigation.state;
   }, [navigation.state, actionData]);
 
   const handleTournamentClick = (tournament: Tournament) => {

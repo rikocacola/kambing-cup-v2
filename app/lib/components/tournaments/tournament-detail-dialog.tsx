@@ -73,7 +73,7 @@ const TournamentDetailDialog = ({
               variant="destructive"
               className="cursor-pointer"
             >
-              Delete 123
+              Delete
             </Button>
           </Form>
         </div>

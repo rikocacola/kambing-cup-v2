@@ -23,7 +23,7 @@ export const getAllTournaments = async ({ token }: { token: string }) => {
   } catch (error) {
     return {
       success: false,
-      error: "An error occurred during fetching tournaments!",
+      error: "An error occurred during fetching tournaments! 2",
     };
   }
 };

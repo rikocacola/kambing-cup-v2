@@ -35,8 +35,13 @@ export const updateTournament = async ({
       };
     }
 
-    const data = await response.json();
-    return { success: true, data, error: null };
+    return {
+      success: true,
+      data: {
+        message: "Success Update Tournament",
+      },
+      error: null,
+    };
   } catch (error) {
     return {
       success: false,

@@ -25,9 +25,6 @@ export const createTournament = async ({
       },
     });
 
-    console.log("Create Tournament Body:", body, formData);
-    console.log("Create Tournament Response:", response);
-
     if (!response.ok) {
       const error = await response.json();
       return {
@@ -36,12 +33,17 @@ export const createTournament = async ({
       };
     }
 
-    const data = await response.json();
-    return { success: true, data, error: null };
+    return {
+      success: true,
+      data: {
+        message: "Tournaments created!",
+      },
+      error: null,
+    };
   } catch (error) {
     return {
       success: false,
-      error: "An error occurred during fetching tournaments!",
+      error: "An error occurred during creating tournaments!",
     };
   }
 };
