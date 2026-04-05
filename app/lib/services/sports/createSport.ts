@@ -1,4 +1,5 @@
 import { authenticatedFetch } from "../apiClient";
+import type { ApiResponse } from "../apiClient";
 
 export const createSport = async ({
   token,
@@ -6,7 +7,7 @@ export const createSport = async ({
 }: {
   token: string;
   body: { tournament_id: string; name: string; image: File };
-}) => {
+}): Promise<ApiResponse<unknown>> => {
   try {
     const formData = new FormData();
     formData.append("tournament_id", body.tournament_id);
@@ -20,21 +21,22 @@ export const createSport = async ({
     });
 
     if (!response.ok) {
-      console.log("Error creating sport:", response);
       const error = await response.json();
       return {
         success: false,
-        error: error || "Something went wrong!",
+        data: null,
+        error_code: error.error_code || "CREATE_SPORT_ERROR",
+        message: error.message || "Something went wrong!",
       };
     }
 
-    return { success: true, data: { message: "Sport created!" }, error: null };
-  } catch (error) {
+    return { success: true, data: null, error_code: "", message: "Sport created!" };
+  } catch {
     return {
       success: false,
-      error: {
-        message: error || "An error occurred while creating the sport!",
-      },
+      data: null,
+      error_code: "CREATE_SPORT_ERROR",
+      message: "An error occurred while creating the sport!",
     };
   }
 };

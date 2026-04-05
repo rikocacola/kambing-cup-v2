@@ -1,4 +1,5 @@
 import { authenticatedFetch } from "../apiClient";
+import type { ApiResponse } from "../apiClient";
 
 export const createTournament = async ({
   token,
@@ -10,7 +11,7 @@ export const createTournament = async ({
     image: File;
     total_surah: string;
   };
-}) => {
+}): Promise<ApiResponse<unknown>> => {
   try {
     const formData = new FormData();
     formData.append("name", body.name);
@@ -29,21 +30,24 @@ export const createTournament = async ({
       const error = await response.json();
       return {
         success: false,
-        error: error.message || "Something went wrong!",
+        data: null,
+        error_code: error.error_code || "CREATE_TOURNAMENT_ERROR",
+        message: error.message || "Something went wrong!",
       };
     }
 
     return {
       success: true,
-      data: {
-        message: "Tournaments created!",
-      },
-      error: null,
+      data: null,
+      error_code: "",
+      message: "Tournaments created!",
     };
-  } catch (error) {
+  } catch {
     return {
       success: false,
-      error: "An error occurred during creating tournaments!",
+      data: null,
+      error_code: "CREATE_TOURNAMENT_ERROR",
+      message: "An error occurred during creating tournaments!",
     };
   }
 };

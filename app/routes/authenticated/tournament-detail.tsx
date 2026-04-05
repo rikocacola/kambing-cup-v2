@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useActionData, useNavigation, useNavigate } from "react-router";
 import { Pencil, Trash2 } from "lucide-react";
-import { getSession } from "~/sessions.server";
 import { getTournament } from "~/lib/services/tournaments/getTournament";
 import { getAllSports } from "~/lib/services/sports/getAllSports";
 import { createSport } from "~/lib/services/sports/createSport";
@@ -15,9 +14,8 @@ export function meta({}: Route.MetaArgs) {
   return [{ title: "Tournament Detail" }];
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const session = await getSession(request.headers.get("Cookie"));
-  const token = session.get("accessToken");
+export async function clientLoader({ params }: Route.ClientLoaderArgs) {
+  const token = localStorage.getItem("accessToken") ?? "";
   if (!token) return { tournament: null, sports: [] };
 
   const [tournamentRes, sportsRes] = await Promise.all([
@@ -31,10 +29,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   };
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const session = await getSession(request.headers.get("Cookie"));
-  const token = session.get("accessToken");
-  if (!token) return { success: false, error: "Unauthorized" };
+export async function clientAction({ request, params }: Route.ClientActionArgs) {
+  const token = localStorage.getItem("accessToken") ?? "";
+  if (!token) return { success: false, error_code: "UNAUTHORIZED", message: "Unauthorized" };
 
   const formData = await request.formData();
   const _action = formData.get("_action") as string;
@@ -67,7 +64,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     return { ...response, _action };
   }
 
-  return { success: false, error: "Unknown action" };
+  return { success: false, error_code: "UNKNOWN_ACTION", message: "Unknown action" };
 }
 
 type Sport = {
@@ -78,7 +75,7 @@ type Sport = {
 
 const TournamentDetail = ({ loaderData }: Route.ComponentProps) => {
   const { tournament, sports } = loaderData;
-  const actionData = useActionData<typeof action>();
+  const actionData = useActionData<typeof clientAction>();
   const navigation = useNavigation();
   const navigate = useNavigate();
 

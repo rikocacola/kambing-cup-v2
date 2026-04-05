@@ -1,4 +1,5 @@
 import { authenticatedFetch } from "../apiClient";
+import type { ApiResponse } from "../apiClient";
 
 export const getTournament = async ({
   token,
@@ -6,7 +7,7 @@ export const getTournament = async ({
 }: {
   token: string;
   id: string;
-}) => {
+}): Promise<ApiResponse<unknown>> => {
   try {
     const response = await authenticatedFetch({
       token,
@@ -20,16 +21,20 @@ export const getTournament = async ({
       const error = await response.json();
       return {
         success: false,
-        error: error.message || "Something went wrong!",
+        data: null,
+        error_code: error.error_code || "FETCH_TOURNAMENT_ERROR",
+        message: error.message || "Something went wrong!",
       };
     }
 
     const data = await response.json();
-    return { success: true, data, error: null };
-  } catch (error) {
+    return { success: true, data, error_code: "", message: "" };
+  } catch {
     return {
       success: false,
-      error: "An error occurred during fetching tournament!",
+      data: null,
+      error_code: "FETCH_TOURNAMENT_ERROR",
+      message: "An error occurred during fetching tournament!",
     };
   }
 };

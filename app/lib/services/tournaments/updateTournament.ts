@@ -1,4 +1,5 @@
 import { authenticatedFetch } from "../apiClient";
+import type { ApiResponse } from "../apiClient";
 
 export const updateTournament = async ({
   token,
@@ -11,7 +12,7 @@ export const updateTournament = async ({
     name: string;
     image?: File;
   };
-}) => {
+}): Promise<ApiResponse<unknown>> => {
   try {
     const formData = new FormData();
     formData.append("name", body.name);
@@ -31,21 +32,24 @@ export const updateTournament = async ({
       const error = await response.json();
       return {
         success: false,
-        error: error.message || "Something went wrong!",
+        data: null,
+        error_code: error.error_code || "UPDATE_TOURNAMENT_ERROR",
+        message: error.message || "Something went wrong!",
       };
     }
 
     return {
       success: true,
-      data: {
-        message: "Success Update Tournament",
-      },
-      error: null,
+      data: null,
+      error_code: "",
+      message: "Success Update Tournament",
     };
-  } catch (error) {
+  } catch {
     return {
       success: false,
-      error: "An error occurred during updating tournament!",
+      data: null,
+      error_code: "UPDATE_TOURNAMENT_ERROR",
+      message: "An error occurred during updating tournament!",
     };
   }
 };

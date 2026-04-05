@@ -1,4 +1,5 @@
 import { authenticatedFetch } from "../apiClient";
+import type { ApiResponse } from "../apiClient";
 
 export const deleteTournament = async ({
   token,
@@ -6,7 +7,7 @@ export const deleteTournament = async ({
 }: {
   token: string;
   id: string;
-}) => {
+}): Promise<ApiResponse<unknown>> => {
   try {
     const response = await authenticatedFetch({
       token,
@@ -20,21 +21,24 @@ export const deleteTournament = async ({
       const error = await response.json();
       return {
         success: false,
-        error: error.message || "Something went wrong!",
+        data: null,
+        error_code: error.error_code || "DELETE_TOURNAMENT_ERROR",
+        message: error.message || "Something went wrong!",
       };
     }
 
     return {
       success: true,
-      data: {
-        message: "Success Delete Tournament",
-      },
-      error: null,
+      data: null,
+      error_code: "",
+      message: "Success Delete Tournament",
     };
-  } catch (error) {
+  } catch {
     return {
       success: false,
-      error: "An error occurred during deleting tournament!",
+      data: null,
+      error_code: "DELETE_TOURNAMENT_ERROR",
+      message: "An error occurred during deleting tournament!",
     };
   }
 };

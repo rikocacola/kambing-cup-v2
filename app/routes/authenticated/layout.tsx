@@ -1,30 +1,24 @@
 import { Outlet, redirect } from "react-router";
 
 import type { Route } from "./+types/layout";
-import { destroySession, getSession } from "~/sessions.server";
 import { getUserService } from "~/lib/services/user/getUserService";
 import Topbar from "~/lib/components/layouts/topbar";
 import Sidebar from "~/lib/components/layouts/sidebar";
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const session = await getSession(request.headers.get("Cookie"));
-  const accessToken = session.get("accessToken");
+export async function clientLoader({}: Route.ClientLoaderArgs) {
+  const accessToken = localStorage.getItem("accessToken");
   if (!accessToken) {
     return redirect("/login");
   }
+
   const userInfo = await getUserService({ token: accessToken });
-  
+
   if (userInfo.success === false) {
-    return redirect("/login", {
-      headers: {
-        "Set-Cookie": await destroySession(session),
-      },
-    });
+    localStorage.removeItem("accessToken");
+    return redirect("/login");
   }
 
-  return {
-    userInfo,
-  };
+  return { userInfo };
 }
 
 const AuthenticatedLayout = ({ loaderData }: Route.ComponentProps) => {

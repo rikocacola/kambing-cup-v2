@@ -1,5 +1,12 @@
 import { redirect } from "react-router";
 
+export type ApiResponse<T> = {
+  success: boolean;
+  data: T;
+  error_code: string;
+  message: string;
+};
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export async function authenticatedFetch({

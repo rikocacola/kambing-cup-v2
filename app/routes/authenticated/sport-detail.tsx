@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useActionData, useNavigation, Form } from "react-router";
-import { getSession } from "~/sessions.server";
 import { getSport } from "~/lib/services/sports/getSport";
 import { getAllTeams } from "~/lib/services/teams/getAllTeams";
 import { generateTeams } from "~/lib/services/teams/generateTeams";
@@ -19,9 +18,8 @@ export function meta({}: Route.MetaArgs) {
   return [{ title: "Sport Detail" }];
 }
 
-export async function loader({ request, params }: Route.LoaderArgs) {
-  const session = await getSession(request.headers.get("Cookie"));
-  const token = session.get("accessToken");
+export async function clientLoader({ params }: Route.ClientLoaderArgs) {
+  const token = localStorage.getItem("accessToken") ?? "";
   if (!token) return { sport: null, teams: [] };
 
   const [sportRes, teamsRes] = await Promise.all([
@@ -35,10 +33,9 @@ export async function loader({ request, params }: Route.LoaderArgs) {
   };
 }
 
-export async function action({ request, params }: Route.ActionArgs) {
-  const session = await getSession(request.headers.get("Cookie"));
-  const token = session.get("accessToken");
-  if (!token) return { success: false, error: "Unauthorized" };
+export async function clientAction({ request, params }: Route.ClientActionArgs) {
+  const token = localStorage.getItem("accessToken") ?? "";
+  if (!token) return { success: false, error_code: "UNAUTHORIZED", message: "Unauthorized" };
 
   const formData = await request.formData();
   const _action = formData.get("_action") as string;
@@ -52,7 +49,7 @@ export async function action({ request, params }: Route.ActionArgs) {
     return { ...response, _action };
   }
 
-  return { success: false, error: "Unknown action" };
+  return { success: false, error_code: "UNKNOWN_ACTION", message: "Unknown action" };
 }
 
 type Team = {
@@ -62,7 +59,7 @@ type Team = {
 
 const SportDetail = ({ loaderData }: Route.ComponentProps) => {
   const { sport, teams } = loaderData;
-  const actionData = useActionData<typeof action>();
+  const actionData = useActionData<typeof clientAction>();
   const navigation = useNavigation();
 
   const [generateOpen, setGenerateOpen] = useState(false);
@@ -104,7 +101,7 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
       </div>
 
       {actionData && !actionData.success && (
-        <p className="text-red-500 text-sm mb-4">{actionData.error as string}</p>
+        <p className="text-red-500 text-sm mb-4">{actionData.message}</p>
       )}
 
       {teams && teams.length > 0 ? (

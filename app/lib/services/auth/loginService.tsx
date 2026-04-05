@@ -15,10 +15,7 @@ export const loginService = async (body: {
       return { success: false, error: error.message || "Login failed" };
     }
 
-    const data: {
-      token: string;
-      exp_in: number;
-    } = await response.json();
+    const { data } = await response.json();
     return { success: true, data, error: null };
   } catch (error) {
     return { success: false, error: "An error occurred during login" };

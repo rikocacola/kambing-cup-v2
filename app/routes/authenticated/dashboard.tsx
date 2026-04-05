@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useActionData, useNavigate, useNavigation } from "react-router";
 import { Pencil } from "lucide-react";
-import { getSession } from "~/sessions.server";
 import type { Route } from "./+types/dashboard";
 import { getAllTournaments } from "~/lib/services/tournaments/getAllTournaments";
 import { createTournament } from "~/lib/services/tournaments/createTournament";
@@ -17,24 +16,19 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export async function loader({ request }: Route.LoaderArgs) {
-  const session = await getSession(request.headers.get("Cookie"));
-  const token = session.get("accessToken");
-  if (token) {
-    const response = await getAllTournaments({ token });
-    return { tournaments: response };
-  }
-  return { tournaments: null };
+export async function clientLoader({}: Route.ClientLoaderArgs) {
+  const token = localStorage.getItem("accessToken") ?? "";
+  const response = await getAllTournaments({ token });
+  return { tournaments: response };
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const session = await getSession(request.headers.get("Cookie"));
-  const token = session.get("accessToken");
+export async function clientAction({ request }: Route.ClientActionArgs) {
+  const token = localStorage.getItem("accessToken") ?? "";
   const formData = await request.formData();
   const action = formData.get("_action") as string;
 
   if (!token) {
-    return { success: false, error: "Unauthorized" };
+    return { success: false, error_code: "UNAUTHORIZED", message: "Unauthorized" };
   }
 
   if (action === "update") {
@@ -76,7 +70,7 @@ type Tournament = {
 
 const Dashboard = ({ loaderData }: Route.ComponentProps) => {
   const tournaments = loaderData.tournaments;
-  const actionData = useActionData<typeof action>();
+  const actionData = useActionData<typeof clientAction>();
   const navigate = useNavigate();
   const navigation = useNavigation();
   const prevNavState = useRef(navigation.state);

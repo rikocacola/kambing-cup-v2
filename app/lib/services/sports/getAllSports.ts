@@ -1,4 +1,5 @@
 import { authenticatedFetch } from "../apiClient";
+import type { ApiResponse } from "../apiClient";
 
 export const getAllSports = async ({
   token,
@@ -6,7 +7,7 @@ export const getAllSports = async ({
 }: {
   token: string;
   tournamentId: string;
-}) => {
+}): Promise<ApiResponse<unknown>> => {
   try {
     const response = await authenticatedFetch({
       token,
@@ -17,17 +18,20 @@ export const getAllSports = async ({
       const error = await response.json();
       return {
         success: false,
-        error: error.message || "Something went wrong!",
+        data: null,
+        error_code: error.error_code || "FETCH_SPORTS_ERROR",
+        message: error.message || "Something went wrong!",
       };
     }
 
     const data = await response.json();
-    console.log("Fetched sports:", data);
-    return { success: true, data, error: null };
+    return { success: true, data, error_code: "", message: "" };
   } catch {
     return {
       success: false,
-      error: "An error occurred while fetching sports!",
+      data: null,
+      error_code: "FETCH_SPORTS_ERROR",
+      message: "An error occurred while fetching sports!",
     };
   }
 };

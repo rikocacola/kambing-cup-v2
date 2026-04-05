@@ -1,9 +1,8 @@
-import { data, redirect } from "react-router";
+import { redirect } from "react-router";
 import type { Route } from "./+types/login";
 
 import LoginPage from "~/lib/pages/login/login";
 import { loginService } from "~/lib/services/auth/loginService";
-import { getSession, commitSession } from "~/sessions.server";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -12,26 +11,16 @@ export function meta({}: Route.MetaArgs) {
   ];
 }
 
-export async function loader({ request }: Route.ClientLoaderArgs) {
-  const session = await getSession(request.headers.get("Cookie"));
-  if (session.has("accessToken")) {
+export async function clientLoader({}: Route.ClientLoaderArgs) {
+  const token = localStorage.getItem("accessToken");
+  if (token) {
     return redirect("/dashboard");
   }
-
-  return data(
-    { error: session.get("error") },
-    {
-      headers: {
-        "Set-Cookie": await commitSession(session),
-      },
-    },
-  );
+  return null;
 }
 
-export async function action({ request }: Route.ActionArgs) {
-  const session = await getSession(request.headers.get("Cookie"));
+export async function clientAction({ request }: Route.ClientActionArgs) {
   const formData = await request.formData();
-
   const username = formData.get("username") as string;
   const password = formData.get("password") as string;
 
@@ -39,21 +28,13 @@ export async function action({ request }: Route.ActionArgs) {
 
   const accessToken = response?.data?.token;
   if (!accessToken) {
-    session.flash("error", "Invalid email/password");
-    return redirect("/login", {
-      headers: {
-        "Set-Cookie": await commitSession(session),
-      },
-    });
+    return { success: false, message: "Invalid email/password" };
   }
 
-  session.set("accessToken", accessToken);
+  console.log("response", response);
 
-  return redirect("/dashboard", {
-    headers: {
-      "Set-Cookie": await commitSession(session),
-    },
-  });
+  localStorage.setItem("accessToken", accessToken);
+  return redirect("/dashboard");
 }
 
 const Login = ({}: Route.ComponentProps) => {
