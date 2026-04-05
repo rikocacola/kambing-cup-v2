@@ -1,5 +1,6 @@
 import { authenticatedFetch } from "../apiClient";
 import type { ApiResponse } from "../apiClient";
+import type { IResponseDataTournament } from "./getAllTournaments";
 
 export const getTournament = async ({
   token,
@@ -7,7 +8,7 @@ export const getTournament = async ({
 }: {
   token: string;
   id: string;
-}): Promise<ApiResponse<unknown>> => {
+}): Promise<ApiResponse<IResponseDataTournament | null>> => {
   try {
     const response = await authenticatedFetch({
       token,
@@ -27,7 +28,8 @@ export const getTournament = async ({
       };
     }
 
-    const data = await response.json();
+    const { data } = await response.json();
+    console.log("Fetched tournament data:", data);
     return { success: true, data, error_code: "", message: "" };
   } catch {
     return {

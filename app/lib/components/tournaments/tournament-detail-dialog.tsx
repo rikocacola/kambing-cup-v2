@@ -8,15 +8,10 @@ import { Button } from "~/lib/components/ui/button";
 import { Form } from "react-router";
 import { Label } from "@radix-ui/react-label";
 import { Input } from "../ui/input";
-
-type Tournament = {
-  id: string;
-  name: string;
-  image_url: string;
-};
+import type { IResponseDataTournament } from "~/lib/services/tournaments/getAllTournaments";
 
 type TournamentDetailDialogProps = {
-  tournament: Tournament | null;
+  tournament: IResponseDataTournament | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };

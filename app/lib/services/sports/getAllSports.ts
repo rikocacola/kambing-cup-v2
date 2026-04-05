@@ -1,13 +1,21 @@
 import { authenticatedFetch } from "../apiClient";
 import type { ApiResponse } from "../apiClient";
 
+export interface IResponseDataSport {
+  id: number;
+  name: string;
+  image_url: string;
+  slug: string;
+  tournament_id: number;
+}
+
 export const getAllSports = async ({
   token,
   tournamentId,
 }: {
   token: string;
   tournamentId: string;
-}): Promise<ApiResponse<unknown>> => {
+}): Promise<ApiResponse<IResponseDataSport[] | null>> => {
   try {
     const response = await authenticatedFetch({
       token,
@@ -24,7 +32,7 @@ export const getAllSports = async ({
       };
     }
 
-    const data = await response.json();
+    const { data } = await response.json();
     return { success: true, data, error_code: "", message: "" };
   } catch {
     return {

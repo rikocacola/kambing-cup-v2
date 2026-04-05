@@ -8,16 +8,11 @@ import { Button } from "~/lib/components/ui/button";
 import { Form } from "react-router";
 import { Label } from "@radix-ui/react-label";
 import { Input } from "../ui/input";
-
-type Sport = {
-  id: string;
-  name: string;
-  image_url: string;
-};
+import type { IResponseDataSport } from "~/lib/services/sports/getAllSports";
 
 type SportDialogProps = {
-  tournamentId: string;
-  sport?: Sport | null;
+  tournamentId: number;
+  sport?: IResponseDataSport | null;
   open: boolean;
   onOpenChange: (open: boolean) => void;
 };
@@ -47,9 +42,7 @@ const SportDialog = ({
             name="_action"
             value={isEdit ? "update_sport" : "create_sport"}
           />
-          {isEdit && (
-            <input type="hidden" name="sportId" value={sport.id} />
-          )}
+          {isEdit && <input type="hidden" name="sportId" value={sport.id} />}
 
           <div className="grid w-full items-center gap-2">
             <Label htmlFor="sport-name">Name</Label>
@@ -63,9 +56,7 @@ const SportDialog = ({
           </div>
 
           <div className="grid w-full items-center gap-2">
-            <Label htmlFor="sport-image">
-              Image {isEdit && "(optional)"}
-            </Label>
+            <Label htmlFor="sport-image">Image {isEdit && "(optional)"}</Label>
             {isEdit && sport.image_url && (
               <img
                 src={sport.image_url}
@@ -73,12 +64,7 @@ const SportDialog = ({
                 className="w-full h-32 object-cover rounded-md"
               />
             )}
-            <Input
-              type="file"
-              id="sport-image"
-              name="image"
-              accept="image/*"
-            />
+            <Input type="file" id="sport-image" name="image" accept="image/*" />
           </div>
 
           <div className="flex justify-end gap-2">

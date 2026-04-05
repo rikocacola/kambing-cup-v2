@@ -1,13 +1,22 @@
 import { authenticatedFetch } from "../apiClient";
 import type { ApiResponse } from "../apiClient";
 
+export interface IResponseDataSportDetail {
+  id: number;
+  name: string;
+  image_url: string;
+  slug: string;
+  tournament_id: number;
+  tournament_name?: string;
+}
+
 export const getSport = async ({
   token,
   id,
 }: {
   token: string;
   id: string;
-}): Promise<ApiResponse<unknown>> => {
+}): Promise<ApiResponse<IResponseDataSportDetail | null>> => {
   try {
     const response = await authenticatedFetch({
       token,

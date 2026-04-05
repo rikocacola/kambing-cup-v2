@@ -2,12 +2,16 @@ import { useEffect, useRef, useState } from "react";
 import { useActionData, useNavigate, useNavigation } from "react-router";
 import { Pencil } from "lucide-react";
 import type { Route } from "./+types/dashboard";
-import { getAllTournaments } from "~/lib/services/tournaments/getAllTournaments";
+import {
+  getAllTournaments,
+  type IResponseDataTournament,
+} from "~/lib/services/tournaments/getAllTournaments";
 import { createTournament } from "~/lib/services/tournaments/createTournament";
 import { updateTournament } from "~/lib/services/tournaments/updateTournament";
 import { deleteTournament } from "~/lib/services/tournaments/deleteTournament";
 import DialogForm from "~/lib/components/tournaments/dialog-form";
 import TournamentDetailDialog from "~/lib/components/tournaments/tournament-detail-dialog";
+import { BASE_URL } from "~/lib/services/auth/loginService";
 
 export function meta({}: Route.MetaArgs) {
   return [
@@ -28,7 +32,11 @@ export async function clientAction({ request }: Route.ClientActionArgs) {
   const action = formData.get("_action") as string;
 
   if (!token) {
-    return { success: false, error_code: "UNAUTHORIZED", message: "Unauthorized" };
+    return {
+      success: false,
+      error_code: "UNAUTHORIZED",
+      message: "Unauthorized",
+    };
   }
 
   if (action === "update") {
@@ -62,20 +70,13 @@ export async function clientAction({ request }: Route.ClientActionArgs) {
   return { ...response, _action: "create" };
 }
 
-type Tournament = {
-  id: string;
-  name: string;
-  image_url: string;
-};
-
 const Dashboard = ({ loaderData }: Route.ComponentProps) => {
   const tournaments = loaderData.tournaments;
   const actionData = useActionData<typeof clientAction>();
   const navigate = useNavigate();
   const navigation = useNavigation();
-  const prevNavState = useRef(navigation.state);
   const [selectedTournament, setSelectedTournament] =
-    useState<Tournament | null>(null);
+    useState<IResponseDataTournament | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
@@ -95,11 +96,11 @@ const Dashboard = ({ loaderData }: Route.ComponentProps) => {
     }
   }, [navigation.state, actionData]);
 
-  const handleTournamentClick = (tournament: Tournament) => {
+  const handleTournamentClick = (tournament: IResponseDataTournament) => {
     navigate(`/dashboard/tournaments/${tournament.id}`);
   };
 
-  const handleEditClick = (e: React.MouseEvent, tournament: Tournament) => {
+  const handleEditClick = (e: React.MouseEvent, tournament: IResponseDataTournament) => {
     e.stopPropagation();
     setSelectedTournament(tournament);
     setDialogOpen(true);
@@ -116,14 +117,14 @@ const Dashboard = ({ loaderData }: Route.ComponentProps) => {
       </div>
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
         {tournaments?.data && tournaments?.data.length > 0 ? (
-          tournaments?.data.map((tournament: Tournament) => (
+          tournaments?.data.map((tournament) => (
             <div
               key={tournament.id}
               className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-shadow cursor-pointer relative"
               onClick={() => handleTournamentClick(tournament)}
             >
               <img
-                src={tournament.image_url}
+                src={`${BASE_URL}${tournament.image_url}`}
                 alt={tournament.name}
                 className="w-full h-48 object-cover"
               />

@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from "react";
 import { useActionData, useNavigation, useNavigate } from "react-router";
 import { Pencil, Trash2 } from "lucide-react";
 import { getTournament } from "~/lib/services/tournaments/getTournament";
-import { getAllSports } from "~/lib/services/sports/getAllSports";
+import {
+  getAllSports,
+  type IResponseDataSport,
+} from "~/lib/services/sports/getAllSports";
 import { createSport } from "~/lib/services/sports/createSport";
 import { updateSport } from "~/lib/services/sports/updateSport";
 import { deleteSport } from "~/lib/services/sports/deleteSport";
@@ -29,9 +32,17 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   };
 }
 
-export async function clientAction({ request, params }: Route.ClientActionArgs) {
+export async function clientAction({
+  request,
+  params,
+}: Route.ClientActionArgs) {
   const token = localStorage.getItem("accessToken") ?? "";
-  if (!token) return { success: false, error_code: "UNAUTHORIZED", message: "Unauthorized" };
+  if (!token)
+    return {
+      success: false,
+      error_code: "UNAUTHORIZED",
+      message: "Unauthorized",
+    };
 
   const formData = await request.formData();
   const _action = formData.get("_action") as string;
@@ -64,7 +75,11 @@ export async function clientAction({ request, params }: Route.ClientActionArgs) 
     return { ...response, _action };
   }
 
-  return { success: false, error_code: "UNKNOWN_ACTION", message: "Unknown action" };
+  return {
+    success: false,
+    error_code: "UNKNOWN_ACTION",
+    message: "Unknown action",
+  };
 }
 
 type Sport = {
@@ -80,7 +95,9 @@ const TournamentDetail = ({ loaderData }: Route.ComponentProps) => {
   const navigate = useNavigate();
 
   const [createOpen, setCreateOpen] = useState(false);
-  const [selectedSport, setSelectedSport] = useState<Sport | null>(null);
+  const [selectedSport, setSelectedSport] = useState<IResponseDataSport | null>(
+    null,
+  );
   const [editOpen, setEditOpen] = useState(false);
 
   useEffect(() => {
@@ -116,13 +133,13 @@ const TournamentDetail = ({ loaderData }: Route.ComponentProps) => {
 
       {sports && sports.length > 0 ? (
         <div className="flex flex-col gap-3">
-          {sports.map((sport: Sport) => (
+          {sports.map((sport: IResponseDataSport) => (
             <div
               key={sport.id}
               className="bg-white rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 p-3 cursor-pointer hover:bg-gray-50 transition-colors"
               onClick={() =>
                 navigate(
-                  `/dashboard/tournaments/${tournament.id}/sports/${sport.id}`
+                  `/dashboard/tournaments/${tournament.id}/sports/${sport.id}`,
                 )
               }
             >
