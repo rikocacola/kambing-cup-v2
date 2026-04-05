@@ -86,7 +86,6 @@ const Dashboard = ({ loaderData }: Route.ComponentProps) => {
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
 
   useEffect(() => {
-    console.log
     if (actionData?.success) {
       if ("_action" in actionData) {
         if (actionData._action === "create") {

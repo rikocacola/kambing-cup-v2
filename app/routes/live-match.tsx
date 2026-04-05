@@ -1,11 +1,17 @@
 import { useNavigate } from "react-router";
 import { getSession } from "~/sessions.server";
 import { Button } from "~/lib/components/ui/button";
+import { getUserService } from "~/lib/services/user/getUserService";
 
 export async function loader({ request }: { request: Request }) {
   const session = await getSession(request.headers.get("Cookie"));
   const token = session.get("accessToken");
-  return { isLoggedIn: !!token };
+  if (!token) return { isLoggedIn: false, isAdmin: false };
+
+  const userInfo = await getUserService({ token });
+  const isAdmin = userInfo.success && userInfo.data?.role === "admin";
+
+  return { isLoggedIn: true, isAdmin };
 }
 
 const SPORTS = [
@@ -19,9 +25,9 @@ const SPORTS = [
 const LiveMatch = ({
   loaderData,
 }: {
-  loaderData: { isLoggedIn: boolean };
+  loaderData: { isLoggedIn: boolean; isAdmin: boolean };
 }) => {
-  const { isLoggedIn } = loaderData;
+  const { isLoggedIn, isAdmin } = loaderData;
   const navigate = useNavigate();
 
   return (
@@ -30,14 +36,18 @@ const LiveMatch = ({
       <header className="bg-white shadow-sm">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <span className="font-bold text-lg">Kambing Cup</span>
-          {!isLoggedIn && (
+          {!isLoggedIn ? (
             <Button size="sm" onClick={() => navigate("/login")}>
               Login
             </Button>
+          ) : (
+            <Button size="sm" onClick={() => navigate("/dashboard")}>
+              Dashboard
+            </Button>
           )}
         </div>
-      </header>
 
+      </header>
       {/* Content */}
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
         <h1 className="text-2xl font-bold mb-6">Live Matches</h1>

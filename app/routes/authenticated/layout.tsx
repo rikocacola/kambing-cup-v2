@@ -4,6 +4,7 @@ import type { Route } from "./+types/layout";
 import { destroySession, getSession } from "~/sessions.server";
 import { getUserService } from "~/lib/services/user/getUserService";
 import Topbar from "~/lib/components/layouts/topbar";
+import Sidebar from "~/lib/components/layouts/sidebar";
 
 export async function loader({ request }: Route.LoaderArgs) {
   const session = await getSession(request.headers.get("Cookie"));
@@ -28,10 +29,13 @@ export async function loader({ request }: Route.LoaderArgs) {
 
 const AuthenticatedLayout = ({ loaderData }: Route.ComponentProps) => {
   return (
-    <div>
+    <div className="min-h-screen flex flex-col">
       <Topbar userInfo={loaderData?.userInfo?.data} />
-      <div className="px-6 py-10">
-        <Outlet />
+      <div className="flex flex-1">
+        <Sidebar />
+        <main className="flex-1 px-6 py-10 bg-gray-50">
+          <Outlet />
+        </main>
       </div>
     </div>
   );

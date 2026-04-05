@@ -13,5 +13,6 @@ export default [
   layout("routes/authenticated/layout.tsx", [
     route("dashboard", "routes/authenticated/dashboard.tsx"),
     route("dashboard/tournaments/:id", "routes/authenticated/tournament-detail.tsx"),
+    route("dashboard/tournaments/:id/sports/:sportId", "routes/authenticated/sport-detail.tsx"),
   ]),
 ] satisfies RouteConfig;
