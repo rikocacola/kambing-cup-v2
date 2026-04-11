@@ -24,9 +24,9 @@ export async function clientLoader({}: Route.ClientLoaderArgs) {
 const AuthenticatedLayout = ({ loaderData }: Route.ComponentProps) => {
   return (
     <div className="min-h-screen flex flex-col">
-      <Topbar userInfo={loaderData?.userInfo?.data} />
+      <Topbar userInfo={loaderData?.userInfo?.data?.data} />
       <div className="flex flex-1">
-        <Sidebar />
+        <Sidebar role={loaderData?.userInfo?.data?.data?.role} />
         <main className="flex-1 px-6 py-10 bg-gray-50">
           <Outlet />
         </main>

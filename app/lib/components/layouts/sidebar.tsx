@@ -1,18 +1,25 @@
 import { NavLink } from "react-router";
-import { Trophy } from "lucide-react";
+import { Trophy, Users } from "lucide-react";
 
 const NAV_ITEMS = [
   { to: "/dashboard", label: "Tournaments", icon: Trophy },
 ];
 
-const Sidebar = () => {
+const Sidebar = ({ role }: { role?: string }) => {
+  const navItems = [
+    ...NAV_ITEMS,
+    ...(role === "SUPERADMIN"
+      ? [{ to: "/dashboard/management-user", label: "Management User", icon: Users }]
+      : []),
+  ];
+
   return (
     <aside className="w-56 shrink-0 min-h-screen bg-white border-r border-gray-100 flex flex-col py-6 px-3">
       <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider px-3 mb-3">
         Menu
       </p>
       <nav className="flex flex-col gap-1">
-        {NAV_ITEMS.map(({ to, label, icon: Icon }) => (
+        {navItems.map(({ to, label, icon: Icon }) => (
           <NavLink
             key={to}
             to={to}

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useActionData, useNavigation, useNavigate } from "react-router";
+import { useActionData, useNavigation, useNavigate, Form } from "react-router";
 import { Pencil, Trash2 } from "lucide-react";
 import { getTournament } from "~/lib/services/tournaments/getTournament";
 import {
@@ -10,6 +10,14 @@ import { createSport } from "~/lib/services/sports/createSport";
 import { updateSport } from "~/lib/services/sports/updateSport";
 import { deleteSport } from "~/lib/services/sports/deleteSport";
 import { Button } from "~/lib/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "~/lib/components/ui/dialog";
 import SportDialog from "~/lib/components/sports/sport-dialog";
 import type { Route } from "./+types/tournament-detail";
 
@@ -99,12 +107,15 @@ const TournamentDetail = ({ loaderData }: Route.ComponentProps) => {
     null,
   );
   const [editOpen, setEditOpen] = useState(false);
+  const [sportToDelete, setSportToDelete] = useState<IResponseDataSport | null>(null);
+  const deleteFormRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
     if (actionData?.success) {
       setCreateOpen(false);
       setEditOpen(false);
       setSelectedSport(null);
+      setSportToDelete(null);
     }
   }, [navigation.state, actionData]);
 
@@ -165,17 +176,14 @@ const TournamentDetail = ({ loaderData }: Route.ComponentProps) => {
                 >
                   <Pencil size={15} />
                 </button>
-                <form method="post">
-                  <input type="hidden" name="_action" value="delete_sport" />
-                  <input type="hidden" name="sportId" value={sport.id} />
-                  <button
-                    type="submit"
-                    className="p-1.5 rounded-md hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"
-                    aria-label="Delete sport"
-                  >
-                    <Trash2 size={15} />
-                  </button>
-                </form>
+                <button
+                  type="button"
+                  onClick={() => setSportToDelete(sport)}
+                  className="p-1.5 rounded-md hover:bg-red-50 text-gray-500 hover:text-red-600 transition-colors"
+                  aria-label="Delete sport"
+                >
+                  <Trash2 size={15} />
+                </button>
               </div>
             </div>
           ))}
@@ -185,6 +193,35 @@ const TournamentDetail = ({ loaderData }: Route.ComponentProps) => {
           No sports yet. Add one to get started.
         </div>
       )}
+
+      {/* Hidden form for delete submission */}
+      <Form method="post" ref={deleteFormRef}>
+        <input type="hidden" name="_action" value="delete_sport" />
+        <input type="hidden" name="sportId" value={sportToDelete?.id ?? ""} />
+      </Form>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!sportToDelete} onOpenChange={(open) => { if (!open) setSportToDelete(null); }}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Delete Sport</DialogTitle>
+            <DialogDescription>
+              Are you sure you want to delete <span className="font-semibold text-gray-800">{sportToDelete?.name}</span>? This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setSportToDelete(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={() => deleteFormRef.current?.requestSubmit()}
+            >
+              Delete
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <SportDialog
         tournamentId={tournament.id}
