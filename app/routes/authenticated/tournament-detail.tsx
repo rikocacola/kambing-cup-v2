@@ -20,6 +20,7 @@ import {
 } from "~/lib/components/ui/dialog";
 import SportDialog from "~/lib/components/sports/sport-dialog";
 import type { Route } from "./+types/tournament-detail";
+import { BASE_URL } from "~/lib/services/auth/loginService";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Tournament Detail" }];
@@ -107,7 +108,9 @@ const TournamentDetail = ({ loaderData }: Route.ComponentProps) => {
     null,
   );
   const [editOpen, setEditOpen] = useState(false);
-  const [sportToDelete, setSportToDelete] = useState<IResponseDataSport | null>(null);
+  const [sportToDelete, setSportToDelete] = useState<IResponseDataSport | null>(
+    null,
+  );
   const deleteFormRef = useRef<HTMLFormElement>(null);
 
   useEffect(() => {
@@ -129,7 +132,7 @@ const TournamentDetail = ({ loaderData }: Route.ComponentProps) => {
     <div className="max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-6">{tournament.name}</h1>
       <img
-        src={tournament.image_url}
+        src={`${BASE_URL}${tournament.image_url}`}
         alt={tournament.name}
         className="w-full h-64 object-cover rounded-lg mb-8"
       />
@@ -155,7 +158,7 @@ const TournamentDetail = ({ loaderData }: Route.ComponentProps) => {
               }
             >
               <img
-                src={sport.image_url}
+                src={`${BASE_URL}${sport.image_url}`}
                 alt={sport.name}
                 className="w-14 h-14 object-cover rounded-lg shrink-0"
               />
@@ -201,12 +204,21 @@ const TournamentDetail = ({ loaderData }: Route.ComponentProps) => {
       </Form>
 
       {/* Delete confirmation dialog */}
-      <Dialog open={!!sportToDelete} onOpenChange={(open) => { if (!open) setSportToDelete(null); }}>
+      <Dialog
+        open={!!sportToDelete}
+        onOpenChange={(open) => {
+          if (!open) setSportToDelete(null);
+        }}
+      >
         <DialogContent showCloseButton={false}>
           <DialogHeader>
             <DialogTitle>Delete Sport</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete <span className="font-semibold text-gray-800">{sportToDelete?.name}</span>? This action cannot be undone.
+              Are you sure you want to delete{" "}
+              <span className="font-semibold text-gray-800">
+                {sportToDelete?.name}
+              </span>
+              ? This action cannot be undone.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

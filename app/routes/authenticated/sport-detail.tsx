@@ -1,12 +1,22 @@
 import { useEffect, useRef, useState } from "react";
-import { useActionData, useNavigation, Form } from "react-router";
+import {
+  useActionData,
+  useNavigation,
+  useRevalidator,
+  Form,
+} from "react-router";
+import { read, utils } from "xlsx";
+import { toast } from "sonner";
 import { ChevronDown, FileSpreadsheet, Plus } from "lucide-react";
 import { getSport } from "~/lib/services/sports/getSport";
 import type { IResponseDataSportDetail } from "~/lib/services/sports/getSport";
 import { getAllTeams } from "~/lib/services/teams/getAllTeams";
-import type { IResponseDataTeam } from "~/lib/services/teams/getAllTeams";
+import type {
+  IResponseDataTeam,
+  IResponseDataTeams,
+} from "~/lib/services/teams/getAllTeams";
 import { createTeam } from "~/lib/services/teams/createTeam";
-import { importTeams } from "~/lib/services/teams/importTeams";
+import { bulkCreateTeams } from "~/lib/services/teams/bulkCreateTeams";
 import { generateTeams } from "~/lib/services/teams/generateTeams";
 import { getMatches } from "~/lib/services/matches/getMatches";
 import type { IMatch } from "~/lib/services/matches/getMatches";
@@ -22,6 +32,7 @@ import {
 } from "~/lib/components/ui/dialog";
 import { cn } from "~/lib/utils";
 import type { Route } from "./+types/sport-detail";
+import { BASE_URL } from "~/lib/services/auth/loginService";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Sport Detail" }];
@@ -39,9 +50,13 @@ export async function clientLoader({ params }: Route.ClientLoaderArgs) {
 
   return {
     sport: sportRes.success
-      ? (sportRes.data as IResponseDataSportDetail)
+      ? (sportRes.data as IResponseDataSportDetail).data
       : null,
-    teams: teamsRes.success ? (teamsRes.data as IResponseDataTeam[]) : [],
+    teams: teamsRes.success
+      ? (teamsRes.data as IResponseDataTeams).data?.filter(
+          (item) => item.sport_id === Number(params.sportId),
+        )
+      : [],
     matches: matchesRes.success ? (matchesRes.data?.data as IMatch[]) : [],
   };
 }
@@ -72,15 +87,6 @@ export async function clientAction({
     return { ...response, _action };
   }
 
-  if (_action === "import_teams") {
-    const file = formData.get("file") as File;
-    const response = await importTeams({
-      token,
-      body: { sport_id: Number(params.sportId), file },
-    });
-    return { ...response, _action };
-  }
-
   if (_action === "generate_matches") {
     const teamCount = Number(formData.get("team_count"));
     const response = await generateTeams({
@@ -101,6 +107,7 @@ export async function clientAction({
       token,
       id: matchId,
       body: {
+        sport_id: Number(params.sportId),
         home_id: homeIdRaw ? Number(homeIdRaw) : null,
         away_id: awayIdRaw ? Number(awayIdRaw) : null,
         home_score: homeScoreRaw !== "" ? Number(homeScoreRaw) : null,
@@ -130,9 +137,9 @@ function groupMatchesByRound(matches: IMatch[]): Map<string, IMatch[]> {
 
 const SportDetail = ({ loaderData }: Route.ComponentProps) => {
   const { sport, teams, matches } = loaderData;
-  console.log("Loader Data:", loaderData);
   const actionData = useActionData<typeof clientAction>();
   const navigation = useNavigation();
+  const { revalidate } = useRevalidator();
 
   const [openAccordion, setOpenAccordion] = useState<
     "teams" | "matches" | null
@@ -141,8 +148,8 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
   const [generateMatchesOpen, setGenerateMatchesOpen] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<IMatch | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
   const excelInputRef = useRef<HTMLInputElement>(null);
-  const excelFormRef = useRef<HTMLFormElement>(null);
 
   const isSubmitting = navigation.state === "submitting";
   const currentAction = navigation.formData?.get("_action") as
@@ -150,11 +157,23 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
     | undefined;
 
   useEffect(() => {
-    if (!actionData?.success) return;
-    if (actionData._action === "create_team") setCreateTeamOpen(false);
-    if (actionData._action === "generate_matches")
-      setGenerateMatchesOpen(false);
-    if (actionData._action === "update_match") setSelectedMatch(null);
+    if (!actionData) return;
+    if (actionData.success) {
+      if (actionData._action === "create_team") {
+        setCreateTeamOpen(false);
+        toast.success("Team created successfully!");
+      }
+      if (actionData._action === "generate_matches") {
+        setGenerateMatchesOpen(false);
+        toast.success("Matches generated successfully!");
+      }
+      if (actionData._action === "update_match") {
+        setSelectedMatch(null);
+        toast.success("Match updated successfully!");
+      }
+    } else {
+      if (actionData.message) toast.error(actionData.message);
+    }
   }, [actionData]);
 
   if (!sport) {
@@ -178,17 +197,56 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
     return teams?.find((t) => t.id === id)?.name ?? "TBD";
   };
 
+  const handleExcelImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !sport) return;
+
+    setIsImporting(true);
+
+    try {
+      const buffer = await file.arrayBuffer();
+      const workbook = read(buffer, { type: "array" });
+      const sheet = workbook.Sheets[workbook.SheetNames[0]];
+      const rows = utils.sheet_to_json<Record<string, unknown>>(sheet);
+
+      const payload = rows
+        .map((row) => ({
+          sport_id: sport.id,
+          name: String(row["Name"] ?? "").trim(),
+          company_name: String(row["Company Name"] ?? "").trim(),
+        }))
+        .filter((item) => item.name);
+
+      const token = localStorage.getItem("accessToken") ?? "";
+      const res = await bulkCreateTeams({ token, body: payload });
+
+      if (res.success) {
+        toast.success("Teams imported successfully!");
+        revalidate();
+      } else {
+        toast.error(res.message);
+      }
+    } catch {
+      toast.error("Failed to parse the Excel file.");
+    } finally {
+      setIsImporting(false);
+      if (excelInputRef.current) excelInputRef.current.value = "";
+    }
+  };
+
   return (
     <div className="max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-1">{sport.name}</h1>
       {sport.tournament_name && (
         <p className="text-gray-500 text-sm mb-6">{sport.tournament_name}</p>
       )}
-      <img
-        src={sport.image_url}
-        alt={sport.name}
-        className="w-full h-64 object-cover rounded-lg mb-8"
-      />
+      <div className="w-full aspect-video mb-8">
+        <img
+          src={`${BASE_URL}${sport.image_url}`}
+          alt={sport.name}
+          className="w-full h-full object-cover rounded-lg"
+        />
+      </div>
 
       <div className="flex flex-col gap-3">
         {/* Teams Accordion */}
@@ -213,33 +271,22 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
           {openAccordion === "teams" && (
             <div className="px-5 pb-5 bg-white border-t">
               <div className="flex gap-2 pt-4 pb-4">
-                {/* Hidden file input for Excel import */}
-                <Form
-                  method="post"
-                  ref={excelFormRef}
-                  encType="multipart/form-data"
-                >
-                  <input type="hidden" name="_action" value="import_teams" />
-                  <input
-                    ref={excelInputRef}
-                    type="file"
-                    name="file"
-                    accept=".xlsx,.xls,.csv"
-                    className="hidden"
-                    onChange={() => excelFormRef.current?.requestSubmit()}
-                  />
-                </Form>
+                <input
+                  ref={excelInputRef}
+                  type="file"
+                  accept=".xlsx,.xls,.csv"
+                  className="hidden"
+                  onChange={handleExcelImport}
+                />
                 <Button
                   type="button"
                   variant="outline"
                   size="sm"
                   onClick={() => excelInputRef.current?.click()}
-                  disabled={isSubmitting && currentAction === "import_teams"}
+                  disabled={isImporting}
                 >
                   <FileSpreadsheet size={15} />
-                  {isSubmitting && currentAction === "import_teams"
-                    ? "Importing..."
-                    : "Import Excel"}
+                  {isImporting ? "Importing..." : "Import Excel"}
                 </Button>
                 <Button
                   type="button"
@@ -250,14 +297,6 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
                   Create Manual
                 </Button>
               </div>
-
-              {actionData &&
-                !actionData.success &&
-                actionData._action === "import_teams" && (
-                  <p className="text-red-500 text-sm mb-3">
-                    {actionData.message}
-                  </p>
-                )}
 
               {teams && teams.length > 0 ? (
                 <div className="flex flex-col gap-2">

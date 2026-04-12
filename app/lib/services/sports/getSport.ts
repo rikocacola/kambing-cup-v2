@@ -2,12 +2,14 @@ import { authenticatedFetch } from "../apiClient";
 import type { ApiResponse } from "../apiClient";
 
 export interface IResponseDataSportDetail {
-  id: number;
-  name: string;
-  image_url: string;
-  slug: string;
-  tournament_id: number;
-  tournament_name?: string;
+  data: {
+    id: number;
+    name: string;
+    image_url: string;
+    slug: string;
+    tournament_id: number;
+    tournament_name?: string;
+  } | null;
 }
 
 export const getSport = async ({
@@ -16,7 +18,7 @@ export const getSport = async ({
 }: {
   token: string;
   id: string;
-}): Promise<ApiResponse<IResponseDataSportDetail | null>> => {
+}): Promise<ApiResponse<IResponseDataSportDetail>> => {
   try {
     const response = await authenticatedFetch({
       token,
@@ -30,7 +32,9 @@ export const getSport = async ({
       const error = await response.json();
       return {
         success: false,
-        data: null,
+        data: {
+          data: null,
+        },
         error_code: error.error_code || "FETCH_SPORT_ERROR",
         message: error.message || "Something went wrong!",
       };
@@ -41,7 +45,9 @@ export const getSport = async ({
   } catch {
     return {
       success: false,
-      data: null,
+      data: {
+        data: null,
+      },
       error_code: "FETCH_SPORT_ERROR",
       message: "An error occurred while fetching sport!",
     };

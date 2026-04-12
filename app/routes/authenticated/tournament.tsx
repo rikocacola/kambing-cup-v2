@@ -1,5 +1,5 @@
 import { useNavigate } from "react-router";
-import { getAllTournaments } from "~/lib/services/tournaments/getAllTournaments";
+import { getActiveTournament } from "~/lib/services/tournaments/getActiveTournament";
 import type { IResponseDataTournament } from "~/lib/services/tournaments/getAllTournaments";
 import { getAllSports } from "~/lib/services/sports/getAllSports";
 import type { IResponseDataSport } from "~/lib/services/sports/getAllSports";
@@ -13,12 +13,10 @@ export async function clientLoader({}: Route.ClientLoaderArgs) {
   const token = localStorage.getItem("accessToken") ?? "";
   if (!token) return { tournament: null, sports: [] };
 
-  const tournamentsRes = await getAllTournaments({ token });
-  const tournaments = tournamentsRes.success
-    ? (tournamentsRes.data as IResponseDataTournament[])
-    : [];
-
-  const activeTournament = tournaments.find((t) => t.is_active) ?? null;
+  const tournamentRes = await getActiveTournament({ token });
+  const activeTournament = tournamentRes.success
+    ? (tournamentRes.data as IResponseDataTournament)
+    : null;
 
   if (!activeTournament) {
     return { tournament: null, sports: [] };
