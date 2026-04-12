@@ -14,6 +14,7 @@ export default [
     route("dashboard", "routes/authenticated/dashboard.tsx"),
     route("dashboard/tournaments/:id", "routes/authenticated/tournament-detail.tsx"),
     route("dashboard/tournaments/:id/sports/:sportId", "routes/authenticated/sport-detail.tsx"),
+    route("dashboard/tournament", "routes/authenticated/tournament.tsx"),
     route("dashboard/management-user", "routes/authenticated/management-user.tsx"),
   ]),
 ] satisfies RouteConfig;

@@ -1,13 +1,14 @@
 import { NavLink } from "react-router";
 import { Trophy, Users } from "lucide-react";
 
-const NAV_ITEMS = [
-  { to: "/dashboard", label: "Tournaments", icon: Trophy },
-];
-
 const Sidebar = ({ role }: { role?: string }) => {
   const navItems = [
-    ...NAV_ITEMS,
+    ...(role === "SUPERADMIN"
+      ? [{ to: "/dashboard", label: "Tournaments", icon: Trophy }]
+      : []),
+    ...(role === "ADMIN"
+      ? [{ to: "/dashboard/tournament", label: "Tournament", icon: Trophy }]
+      : []),
     ...(role === "SUPERADMIN"
       ? [{ to: "/dashboard/management-user", label: "Management User", icon: Users }]
       : []),

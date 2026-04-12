@@ -11,11 +11,13 @@ export const updateTournament = async ({
   body: {
     name: string;
     image?: File;
+    is_active?: boolean;
   };
 }): Promise<ApiResponse<unknown>> => {
   try {
     const formData = new FormData();
     formData.append("name", body.name);
+    formData.append("is_active", String(body.is_active ?? false));
     if (body.image) {
       formData.append("image", body.image);
     }

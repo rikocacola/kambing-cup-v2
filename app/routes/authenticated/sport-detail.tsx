@@ -8,6 +8,9 @@ import type { IResponseDataTeam } from "~/lib/services/teams/getAllTeams";
 import { createTeam } from "~/lib/services/teams/createTeam";
 import { importTeams } from "~/lib/services/teams/importTeams";
 import { generateTeams } from "~/lib/services/teams/generateTeams";
+import { getMatches } from "~/lib/services/matches/getMatches";
+import type { IMatch } from "~/lib/services/matches/getMatches";
+import { updateMatch } from "~/lib/services/matches/updateMatch";
 import { Button } from "~/lib/components/ui/button";
 import { Input } from "~/lib/components/ui/input";
 import { Label } from "~/lib/components/ui/label";
@@ -26,23 +29,35 @@ export function meta({}: Route.MetaArgs) {
 
 export async function clientLoader({ params }: Route.ClientLoaderArgs) {
   const token = localStorage.getItem("accessToken") ?? "";
-  if (!token) return { sport: null, teams: [] };
+  if (!token) return { sport: null, teams: [], matches: [] };
 
-  const [sportRes, teamsRes] = await Promise.all([
+  const [sportRes, teamsRes, matchesRes] = await Promise.all([
     getSport({ token, id: params.sportId }),
     getAllTeams({ token, sportId: params.sportId }),
+    getMatches({ token, sportId: params.sportId }),
   ]);
 
   return {
-    sport: sportRes.success ? (sportRes.data as IResponseDataSportDetail) : null,
+    sport: sportRes.success
+      ? (sportRes.data as IResponseDataSportDetail)
+      : null,
     teams: teamsRes.success ? (teamsRes.data as IResponseDataTeam[]) : [],
+    matches: matchesRes.success ? (matchesRes.data?.data as IMatch[]) : [],
   };
 }
 
-export async function clientAction({ request, params }: Route.ClientActionArgs) {
+export async function clientAction({
+  request,
+  params,
+}: Route.ClientActionArgs) {
   const token = localStorage.getItem("accessToken") ?? "";
   if (!token) {
-    return { success: false, error_code: "UNAUTHORIZED", message: "Unauthorized", _action: "" };
+    return {
+      success: false,
+      error_code: "UNAUTHORIZED",
+      message: "Unauthorized",
+      _action: "",
+    };
   }
 
   const formData = await request.formData();
@@ -75,35 +90,92 @@ export async function clientAction({ request, params }: Route.ClientActionArgs) 
     return { ...response, _action };
   }
 
-  return { success: false, error_code: "UNKNOWN_ACTION", message: "Unknown action", _action: "" };
+  if (_action === "update_match") {
+    const matchId = Number(formData.get("match_id"));
+    const homeIdRaw = formData.get("home_id") as string;
+    const awayIdRaw = formData.get("away_id") as string;
+    const homeScoreRaw = formData.get("home_score") as string;
+    const awayScoreRaw = formData.get("away_score") as string;
+
+    const response = await updateMatch({
+      token,
+      id: matchId,
+      body: {
+        home_id: homeIdRaw ? Number(homeIdRaw) : null,
+        away_id: awayIdRaw ? Number(awayIdRaw) : null,
+        home_score: homeScoreRaw !== "" ? Number(homeScoreRaw) : null,
+        away_score: awayScoreRaw !== "" ? Number(awayScoreRaw) : null,
+      },
+    });
+    return { ...response, _action };
+  }
+
+  return {
+    success: false,
+    error_code: "UNKNOWN_ACTION",
+    message: "Unknown action",
+    _action: "",
+  };
+}
+
+function groupMatchesByRound(matches: IMatch[]): Map<string, IMatch[]> {
+  const map = new Map<string, IMatch[]>();
+  for (const match of matches) {
+    const existing = map.get(match.round) ?? [];
+    existing.push(match);
+    map.set(match.round, existing);
+  }
+  return map;
 }
 
 const SportDetail = ({ loaderData }: Route.ComponentProps) => {
-  const { sport, teams } = loaderData;
+  const { sport, teams, matches } = loaderData;
+  console.log("Loader Data:", loaderData);
   const actionData = useActionData<typeof clientAction>();
   const navigation = useNavigation();
 
-  const [openAccordion, setOpenAccordion] = useState<"teams" | "matches" | null>("teams");
+  const [openAccordion, setOpenAccordion] = useState<
+    "teams" | "matches" | null
+  >("teams");
+  const [openRound, setOpenRound] = useState<string | null>(null);
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
   const [generateMatchesOpen, setGenerateMatchesOpen] = useState(false);
+  const [selectedMatch, setSelectedMatch] = useState<IMatch | null>(null);
   const excelInputRef = useRef<HTMLInputElement>(null);
   const excelFormRef = useRef<HTMLFormElement>(null);
 
   const isSubmitting = navigation.state === "submitting";
-  const currentAction = navigation.formData?.get("_action") as string | undefined;
+  const currentAction = navigation.formData?.get("_action") as
+    | string
+    | undefined;
 
   useEffect(() => {
     if (!actionData?.success) return;
     if (actionData._action === "create_team") setCreateTeamOpen(false);
-    if (actionData._action === "generate_matches") setGenerateMatchesOpen(false);
+    if (actionData._action === "generate_matches")
+      setGenerateMatchesOpen(false);
+    if (actionData._action === "update_match") setSelectedMatch(null);
   }, [actionData]);
 
   if (!sport) {
-    return <div className="text-center text-gray-500 py-8">Sport not found</div>;
+    return (
+      <div className="text-center text-gray-500 py-8">Sport not found</div>
+    );
   }
 
   const toggleAccordion = (section: "teams" | "matches") => {
     setOpenAccordion((prev) => (prev === section ? null : section));
+  };
+
+  const toggleRound = (round: string) => {
+    setOpenRound((prev) => (prev === round ? null : round));
+  };
+
+  const matchesByRound = groupMatchesByRound(matches ?? []);
+
+  const getTeamName = (id: number | null) => {
+    if (!id) return "TBD";
+    return teams?.find((t) => t.id === id)?.name ?? "TBD";
   };
 
   return (
@@ -142,7 +214,11 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
             <div className="px-5 pb-5 bg-white border-t">
               <div className="flex gap-2 pt-4 pb-4">
                 {/* Hidden file input for Excel import */}
-                <Form method="post" ref={excelFormRef} encType="multipart/form-data">
+                <Form
+                  method="post"
+                  ref={excelFormRef}
+                  encType="multipart/form-data"
+                >
                   <input type="hidden" name="_action" value="import_teams" />
                   <input
                     ref={excelInputRef}
@@ -175,9 +251,13 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
                 </Button>
               </div>
 
-              {actionData && !actionData.success && actionData._action === "import_teams" && (
-                <p className="text-red-500 text-sm mb-3">{actionData.message}</p>
-              )}
+              {actionData &&
+                !actionData.success &&
+                actionData._action === "import_teams" && (
+                  <p className="text-red-500 text-sm mb-3">
+                    {actionData.message}
+                  </p>
+                )}
 
               {teams && teams.length > 0 ? (
                 <div className="flex flex-col gap-2">
@@ -208,7 +288,10 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
             className="w-full flex items-center justify-between px-5 py-4 bg-white hover:bg-gray-50 transition-colors"
             onClick={() => toggleAccordion("matches")}
           >
-            <span className="font-semibold text-gray-800">Matches</span>
+            <span className="font-semibold text-gray-800">
+              Matches{" "}
+              {matches && matches.length > 0 ? `(${matches.length})` : ""}
+            </span>
             <ChevronDown
               size={18}
               className={cn(
@@ -230,13 +313,83 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
                 </Button>
               </div>
 
-              {actionData && !actionData.success && actionData._action === "generate_matches" && (
-                <p className="text-red-500 text-sm mb-3">{actionData.message}</p>
-              )}
+              {actionData &&
+                !actionData.success &&
+                actionData._action === "generate_matches" && (
+                  <p className="text-red-500 text-sm mb-3">
+                    {actionData.message}
+                  </p>
+                )}
 
-              <div className="text-center text-gray-400 py-8 border border-dashed rounded-xl text-sm">
-                No matches yet. Generate matches to get started.
-              </div>
+              {matches && matches.length > 0 ? (
+                <div className="flex flex-col gap-2">
+                  {Array.from(matchesByRound.entries()).map(
+                    ([round, roundMatches]) => (
+                      <div
+                        key={round}
+                        className="border rounded-lg overflow-hidden"
+                      >
+                        <button
+                          type="button"
+                          className="w-full flex items-center justify-between px-4 py-3 bg-gray-50 hover:bg-gray-100 transition-colors"
+                          onClick={() => toggleRound(round)}
+                        >
+                          <span className="font-medium text-gray-700 text-sm">
+                            {round} ({roundMatches.length})
+                          </span>
+                          <ChevronDown
+                            size={16}
+                            className={cn(
+                              "text-gray-500 transition-transform duration-200",
+                              openRound === round && "rotate-180",
+                            )}
+                          />
+                        </button>
+
+                        {openRound === round && (
+                          <div className="flex flex-col divide-y">
+                            {roundMatches.map((match) => (
+                              <button
+                                key={match.id}
+                                type="button"
+                                className="w-full flex items-center px-4 py-3 bg-white hover:bg-gray-50 transition-colors text-left"
+                                onClick={() => setSelectedMatch(match)}
+                              >
+                                <div className="flex-1 flex items-center justify-between gap-4">
+                                  <span className="text-sm font-medium text-gray-800 flex-1 text-right">
+                                    {getTeamName(match.home_id)}
+                                  </span>
+                                  <span className="text-sm font-bold text-gray-500 px-2">
+                                    {match.home_score ?? "-"} :{" "}
+                                    {match.away_score ?? "-"}
+                                  </span>
+                                  <span className="text-sm font-medium text-gray-800 flex-1">
+                                    {getTeamName(match.away_id)}
+                                  </span>
+                                </div>
+                                <span
+                                  className={cn(
+                                    "ml-4 text-xs px-2 py-0.5 rounded-full font-medium",
+                                    match.state === "DONE"
+                                      ? "bg-green-100 text-green-700"
+                                      : "bg-yellow-100 text-yellow-700",
+                                  )}
+                                >
+                                  {match.state}
+                                </span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ),
+                  )}
+                </div>
+              ) : (
+                <div className="text-center text-gray-400 py-8 border border-dashed rounded-xl text-sm">
+                  No matches yet. Generate matches to get started.
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -318,6 +471,110 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
               </Button>
             </div>
           </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Match Dialog */}
+      <Dialog
+        open={!!selectedMatch}
+        onOpenChange={(open) => !open && setSelectedMatch(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Match — {selectedMatch?.round}</DialogTitle>
+          </DialogHeader>
+          {selectedMatch && (
+            <Form className="flex flex-col gap-5 pt-2" method="POST">
+              <input type="hidden" name="_action" value="update_match" />
+              <input type="hidden" name="match_id" value={selectedMatch.id} />
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid w-full items-center gap-2">
+                  <Label htmlFor="home-team">Home Team</Label>
+                  <select
+                    id="home-team"
+                    name="home_id"
+                    defaultValue={selectedMatch.home_id ?? ""}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <option value="">TBD</option>
+                    {teams?.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {team.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="grid w-full items-center gap-2">
+                  <Label htmlFor="away-team">Away Team</Label>
+                  <select
+                    id="away-team"
+                    name="away_id"
+                    defaultValue={selectedMatch.away_id ?? ""}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                  >
+                    <option value="">TBD</option>
+                    {teams?.map((team) => (
+                      <option key={team.id} value={team.id}>
+                        {team.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="grid w-full items-center gap-2">
+                  <Label htmlFor="home-score">Home Score</Label>
+                  <Input
+                    type="number"
+                    id="home-score"
+                    name="home_score"
+                    defaultValue={selectedMatch.home_score ?? ""}
+                    min={0}
+                    placeholder="—"
+                  />
+                </div>
+
+                <div className="grid w-full items-center gap-2">
+                  <Label htmlFor="away-score">Away Score</Label>
+                  <Input
+                    type="number"
+                    id="away-score"
+                    name="away_score"
+                    defaultValue={selectedMatch.away_score ?? ""}
+                    min={0}
+                    placeholder="—"
+                  />
+                </div>
+              </div>
+
+              {actionData &&
+                !actionData.success &&
+                actionData._action === "update_match" && (
+                  <p className="text-red-500 text-sm">{actionData.message}</p>
+                )}
+
+              <div className="flex justify-end gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setSelectedMatch(null)}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting && currentAction === "update_match"}
+                >
+                  {isSubmitting && currentAction === "update_match"
+                    ? "Saving..."
+                    : "Save"}
+                </Button>
+              </div>
+            </Form>
+          )}
         </DialogContent>
       </Dialog>
     </div>

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useActionData, useNavigate, useNavigation } from "react-router";
+import { useActionData, useNavigate, useNavigation, redirect } from "react-router";
 import { Pencil } from "lucide-react";
 import type { Route } from "./+types/dashboard";
 import {
@@ -9,6 +9,7 @@ import {
 import { createTournament } from "~/lib/services/tournaments/createTournament";
 import { updateTournament } from "~/lib/services/tournaments/updateTournament";
 import { deleteTournament } from "~/lib/services/tournaments/deleteTournament";
+import { getUserService } from "~/lib/services/user/getUserService";
 import DialogForm from "~/lib/components/tournaments/dialog-form";
 import TournamentDetailDialog from "~/lib/components/tournaments/tournament-detail-dialog";
 import { BASE_URL } from "~/lib/services/auth/loginService";
@@ -22,6 +23,14 @@ export function meta({}: Route.MetaArgs) {
 
 export async function clientLoader({}: Route.ClientLoaderArgs) {
   const token = localStorage.getItem("accessToken") ?? "";
+
+  const userRes = await getUserService({ token });
+  const role = userRes.success ? userRes.data?.data?.role : null;
+
+  if (role === "ADMIN") {
+    return redirect("/dashboard/tournament");
+  }
+
   const response = await getAllTournaments({ token });
   return { tournaments: response };
 }
@@ -43,8 +52,9 @@ export async function clientAction({ request }: Route.ClientActionArgs) {
     const tournamentId = formData.get("tournamentId") as string;
     const name = formData.get("name") as string;
     const image = formData.get("image") as File;
+    const is_active = formData.get("is_active") === "true";
 
-    const body: { name: string; image?: File } = { name };
+    const body: { name: string; image?: File; is_active: boolean } = { name, is_active };
     if (image && image.size > 0) {
       body.image = image;
     }
