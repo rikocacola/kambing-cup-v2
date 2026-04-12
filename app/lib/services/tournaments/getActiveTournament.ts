@@ -10,7 +10,7 @@ export const getActiveTournament = async ({
   try {
     const response = await authenticatedFetch({
       token,
-      path: "tournament/active",
+      path: "public/tournament/active",
     });
 
     if (!response.ok) {

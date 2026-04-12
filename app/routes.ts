@@ -12,9 +12,22 @@ export default [
   route("/logout", "routes/logout.tsx"),
   layout("routes/authenticated/layout.tsx", [
     route("dashboard", "routes/authenticated/dashboard.tsx"),
-    route("dashboard/tournaments/:id", "routes/authenticated/tournament-detail.tsx"),
-    route("dashboard/tournaments/:id/sports/:sportId", "routes/authenticated/sport-detail.tsx"),
+    route(
+      "dashboard/tournaments/:id",
+      "routes/authenticated/tournament-detail.tsx",
+    ),
+    route(
+      "dashboard/tournaments/:id/sports/:sportId",
+      "routes/authenticated/sport-detail.tsx",
+    ),
     route("dashboard/tournament", "routes/authenticated/tournament.tsx"),
-    route("dashboard/management-user", "routes/authenticated/management-user.tsx"),
+    route(
+      "dashboard/tournament/sports/:slug/:sportId",
+      "routes/authenticated/admin-sport-detail.tsx",
+    ),
+    route(
+      "dashboard/management-user",
+      "routes/authenticated/management-user.tsx",
+    ),
   ]),
 ] satisfies RouteConfig;

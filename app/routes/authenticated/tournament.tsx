@@ -4,6 +4,7 @@ import type { IResponseDataTournament } from "~/lib/services/tournaments/getAllT
 import { getAllSports } from "~/lib/services/sports/getAllSports";
 import type { IResponseDataSport } from "~/lib/services/sports/getAllSports";
 import type { Route } from "./+types/tournament";
+import { BASE_URL } from "~/lib/services/auth/loginService";
 
 export function meta({}: Route.MetaArgs) {
   return [{ title: "Tournament" }];
@@ -37,6 +38,9 @@ const Tournament = ({ loaderData }: Route.ComponentProps) => {
   const { tournament, sports } = loaderData;
   const navigate = useNavigate();
 
+  // TODO: replace "agi-16" with tournament.slug once the API returns it
+  const slug = tournament?.slug ?? "agi-16";
+
   if (!tournament) {
     return (
       <div className="text-center text-gray-500 py-16">
@@ -49,7 +53,7 @@ const Tournament = ({ loaderData }: Route.ComponentProps) => {
     <div className="max-w-2xl mx-auto">
       <h1 className="text-2xl font-bold mb-1">{tournament.name}</h1>
       <img
-        src={tournament.image_url}
+        src={`${BASE_URL}${tournament.image_url}`}
         alt={tournament.name}
         className="w-full h-64 object-cover rounded-lg mb-8 mt-4"
       />
@@ -63,9 +67,7 @@ const Tournament = ({ loaderData }: Route.ComponentProps) => {
               key={sport.id}
               className="bg-white rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 p-3 cursor-pointer hover:bg-gray-50 transition-colors"
               onClick={() =>
-                navigate(
-                  `/dashboard/tournaments/${tournament.id}/sports/${sport.id}`,
-                )
+                navigate(`/dashboard/tournament/sports/${slug}/${sport.id}`)
               }
             >
               <img
