@@ -8,6 +8,7 @@ import {
 export default [
   index("routes/live-match.tsx"),
   route("/live-match/:sport", "routes/live-match.$sport.tsx"),
+  route("/hafalan", "routes/hafalan.tsx"),
   route("/login", "routes/login.tsx"),
   route("/logout", "routes/logout.tsx"),
   layout("routes/authenticated/layout.tsx", [

@@ -53,6 +53,17 @@ const TournamentDetailDialog = ({
               />
             </div>
             <div className="grid w-full items-center gap-2">
+              <Label htmlFor="total_surah">Total Surah</Label>
+              <Input
+                type="number"
+                id="total_surah"
+                placeholder="Total Surah"
+                name="total_surah"
+                min={1}
+                defaultValue={tournament.total_surah}
+              />
+            </div>
+            <div className="grid w-full items-center gap-2">
               <Label htmlFor="image">Image (optional)</Label>
               {tournament.image_url && (
                 <img

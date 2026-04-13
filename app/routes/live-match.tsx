@@ -51,6 +51,12 @@ const LiveMatch = ({
       {/* Content */}
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
         <h1 className="text-2xl font-bold mb-6">Live Matches</h1>
+        <button
+          onClick={() => navigate("/hafalan")}
+          className="w-full mb-6 bg-white rounded-xl shadow-md p-4 flex items-center justify-center text-center font-semibold text-gray-800 hover:shadow-lg hover:bg-primary hover:text-white transition-all cursor-pointer"
+        >
+          Hafalan
+        </button>
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
           {SPORTS.map((sport) => (
             <button
