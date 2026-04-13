@@ -73,7 +73,7 @@ export async function clientAction({
     const response = await updateSport({
       token,
       id: sportId,
-      body: { name, image },
+      body: { name, image, tournament_id: params.id },
     });
     return { ...response, _action };
   }

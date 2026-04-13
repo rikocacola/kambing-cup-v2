@@ -26,7 +26,7 @@ export async function authenticatedFetch({
     redirect("/login");
   }
 
-  const url = `${BASE_URL}${path}`;
+  const url = `${BASE_URL}/${path}`;
 
   return fetch(url, {
     ...options,

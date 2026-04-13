@@ -8,11 +8,14 @@ export const updateSport = async ({
 }: {
   token: string;
   id: string;
-  body: { name: string; image?: File };
+  body: { name: string; image?: File; tournament_id?: string };
 }): Promise<ApiResponse<unknown>> => {
   try {
     const formData = new FormData();
     formData.append("name", body.name);
+    if (body.tournament_id) {
+      formData.append("tournament_id", body.tournament_id);
+    }
     if (body.image && body.image.size > 0) {
       formData.append("image", body.image);
     }
