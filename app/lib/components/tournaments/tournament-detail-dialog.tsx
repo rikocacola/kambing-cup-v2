@@ -24,8 +24,16 @@ const TournamentDetailDialog = ({
   onOpenChange,
 }: TournamentDetailDialogProps) => {
   const [isActive, setIsActive] = useState(tournament?.is_active ?? false);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
   if (!tournament) return null;
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setPreviewUrl(URL.createObjectURL(file));
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -65,14 +73,20 @@ const TournamentDetailDialog = ({
             </div>
             <div className="grid w-full items-center gap-2">
               <Label htmlFor="image">Image (optional)</Label>
-              {tournament.image_url && (
+              {(previewUrl ?? tournament.image_url) && (
                 <img
-                  src={tournament.image_url}
+                  src={previewUrl ?? tournament.image_url}
                   alt={tournament.name}
                   className="w-full h-36 object-cover rounded-md"
                 />
               )}
-              <Input type="file" id="image" name="image" accept="image/*" />
+              <Input
+                type="file"
+                id="image"
+                name="image"
+                accept="image/*"
+                onChange={handleImageChange}
+              />
             </div>
             <div className="flex items-center gap-3">
               <Switch
