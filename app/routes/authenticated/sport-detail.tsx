@@ -394,6 +394,7 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
                                 className="w-full flex items-center px-4 py-3 bg-white hover:bg-gray-50 transition-colors text-left"
                                 onClick={() => setSelectedMatch(match)}
                               >
+                                <div>{match.round_id}</div>
                                 <div className="flex-1 flex items-center justify-between gap-4">
                                   <span className="text-sm font-medium text-gray-800 flex-1 text-right">
                                     {getTeamName(match.home_id)}
@@ -520,10 +521,14 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Match — {selectedMatch?.round}</DialogTitle>
+            <DialogTitle>Edit Match — {selectedMatch?.round} - </DialogTitle>
           </DialogHeader>
           {selectedMatch && (
             <Form className="flex flex-col gap-5 pt-2" method="POST">
+              <div>
+                <p>Current round: {selectedMatch?.round_id}</p>
+                <p>Next round: {selectedMatch?.next_round_id}</p>
+              </div>
               <input type="hidden" name="_action" value="update_match" />
               <input type="hidden" name="match_id" value={selectedMatch.id} />
 

@@ -1,34 +1,60 @@
 import { useNavigate } from "react-router";
+import { useState, useEffect } from "react";
 import { getSession } from "~/sessions.server";
 import { Button } from "~/lib/components/ui/button";
 import { getUserService } from "~/lib/services/user/getUserService";
+import { getActiveTournament } from "~/lib/services/tournaments/getActiveTournament";
+import { getSportsByTournament } from "~/lib/firebase/tournament-service";
 
 export async function loader({ request }: { request: Request }) {
   const session = await getSession(request.headers.get("Cookie"));
   const token = session.get("accessToken");
-  if (!token) return { isLoggedIn: false, isAdmin: false };
+  const activeTournament = await getActiveTournament();
+  const tournamentSlug = activeTournament.success
+    ? activeTournament.data?.slug
+    : null;
+
+  if (!token) return { isLoggedIn: false, isAdmin: false, tournamentSlug };
 
   const userInfo = await getUserService({ token });
   const isAdmin = userInfo.success && userInfo.data?.role === "admin";
 
-  return { isLoggedIn: true, isAdmin };
+  return { isLoggedIn: true, isAdmin, tournamentSlug };
 }
-
-const SPORTS = [
-  { id: "fifa", label: "FIFA" },
-  { id: "futsal", label: "Futsal" },
-  { id: "tepuk-bulu", label: "Tepuk Bulu" },
-  { id: "archery", label: "Archery" },
-  { id: "ping-pong", label: "Ping Pong" },
-];
 
 const LiveMatch = ({
   loaderData,
 }: {
-  loaderData: { isLoggedIn: boolean; isAdmin: boolean };
+  loaderData: {
+    isLoggedIn: boolean;
+    isAdmin: boolean;
+    tournamentSlug: string | null;
+  };
 }) => {
-  const { isLoggedIn, isAdmin } = loaderData;
+  const { isLoggedIn, tournamentSlug } = loaderData;
   const navigate = useNavigate();
+  const [sports, setSports] = useState<{ id: string; name: string }[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const loadSports = async () => {
+      if (!tournamentSlug) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const sportsData = await getSportsByTournament(tournamentSlug);
+        setSports(sportsData);
+      } catch (error) {
+        console.error("Error loading sports:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadSports();
+  }, [tournamentSlug]);
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -46,28 +72,33 @@ const LiveMatch = ({
             </Button>
           )}
         </div>
-
       </header>
       {/* Content */}
       <main className="max-w-3xl mx-auto px-4 sm:px-6 py-6">
-        <h1 className="text-2xl font-bold mb-6">Live Matches</h1>
         <button
           onClick={() => navigate("/hafalan")}
           className="w-full mb-6 bg-white rounded-xl shadow-md p-4 flex items-center justify-center text-center font-semibold text-gray-800 hover:shadow-lg hover:bg-primary hover:text-white transition-all cursor-pointer"
         >
           Hafalan
         </button>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {SPORTS.map((sport) => (
-            <button
-              key={sport.id}
-              onClick={() => navigate(`/live-match/${sport.id}`)}
-              className="bg-white rounded-xl shadow-md p-6 flex items-center justify-center text-center font-semibold text-gray-800 hover:shadow-lg hover:bg-primary hover:text-white transition-all cursor-pointer"
-            >
-              {sport.label}
-            </button>
-          ))}
-        </div>
+        <h1 className="text-2xl font-bold mb-6">Live Matches</h1>
+        {loading ? (
+          <p className="text-center text-gray-500 py-12">Loading sports...</p>
+        ) : sports.length === 0 ? (
+          <p className="text-center text-gray-500 py-12">No sports available</p>
+        ) : (
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            {sports.map((sport) => (
+              <button
+                key={sport.id}
+                onClick={() => navigate(`/live-match/${sport.id}`)}
+                className="bg-white rounded-xl shadow-md p-6 flex items-center justify-center text-center font-semibold text-gray-800 hover:shadow-lg hover:bg-primary hover:text-white transition-all cursor-pointer"
+              >
+                {sport.name.toUpperCase()}
+              </button>
+            ))}
+          </div>
+        )}
       </main>
     </div>
   );

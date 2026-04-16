@@ -14,7 +14,7 @@ export async function clientLoader({}: Route.ClientLoaderArgs) {
   const token = localStorage.getItem("accessToken") ?? "";
   if (!token) return { tournament: null, sports: [] };
 
-  const tournamentRes = await getActiveTournament({ token });
+  const tournamentRes = await getActiveTournament();
   const activeTournament = tournamentRes.success
     ? (tournamentRes.data as IResponseDataTournament)
     : null;
@@ -71,7 +71,7 @@ const Tournament = ({ loaderData }: Route.ComponentProps) => {
               }
             >
               <img
-                src={sport.image_url}
+                src={`${BASE_URL}${sport.image_url}`}
                 alt={sport.name}
                 className="w-14 h-14 object-cover rounded-lg shrink-0"
               />

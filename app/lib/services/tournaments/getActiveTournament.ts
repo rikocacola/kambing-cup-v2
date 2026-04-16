@@ -1,17 +1,12 @@
-import { authenticatedFetch } from "../apiClient";
 import type { ApiResponse } from "../apiClient";
+import { BASE_URL } from "../auth/loginService";
 import type { IResponseDataTournament } from "./getAllTournaments";
 
-export const getActiveTournament = async ({
-  token,
-}: {
-  token: string;
-}): Promise<ApiResponse<IResponseDataTournament | null>> => {
+export const getActiveTournament = async (): Promise<
+  ApiResponse<IResponseDataTournament | null>
+> => {
   try {
-    const response = await authenticatedFetch({
-      token,
-      path: "public/tournament/active",
-    });
+    const response = await fetch(`${BASE_URL}/public/tournament/active`);
 
     if (!response.ok) {
       const error = await response.json();
