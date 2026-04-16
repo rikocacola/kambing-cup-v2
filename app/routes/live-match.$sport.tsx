@@ -5,7 +5,7 @@ import { Button } from "~/lib/components/ui/button";
 import { Accordion } from "~/lib/components/ui/accordion";
 import { getActiveTournament } from "~/lib/services/tournaments/getActiveTournament";
 import {
-  getMatchesBySport,
+  subscribeMatchesBySport,
   categorizeMatchesByRound,
   separateLiveMatches,
   type Match,
@@ -68,9 +68,14 @@ const MatchCard = ({ match }: { match: Match }) => {
 
       <div className="flex items-center justify-between gap-2">
         <div className="flex-1 text-center">
-          <p className="text-sm sm:text-base font-semibold text-gray-800">
-            {homeTeam?.name || "TBD"}
-          </p>
+          <div className="flex justify-between items-center ">
+            <p className="bg-blue-300 text-blue-700 px-2 py-1 rounded-lg">
+              {homeTeam?.resultText || 0}
+            </p>
+            <p className="text-sm sm:text-base font-semibold text-gray-800">
+              {homeTeam?.name || "TBD"}
+            </p>
+          </div>
         </div>
 
         <div className="flex-1 text-center">
@@ -78,9 +83,14 @@ const MatchCard = ({ match }: { match: Match }) => {
         </div>
 
         <div className="flex-1 text-center">
-          <p className="text-sm sm:text-base font-semibold text-gray-800">
-            {awayTeam?.name || "TBD"}
-          </p>
+          <div className="flex justify-between items-center ">
+            <p className="text-sm sm:text-base font-semibold text-gray-800">
+              {awayTeam?.name || "TBD"}
+            </p>
+            <p className="bg-blue-300 text-blue-700 px-2 py-1 rounded-lg ">
+              {awayTeam?.resultText || 0}
+            </p>
+          </div>
         </div>
       </div>
     </div>
@@ -106,31 +116,34 @@ const LiveMatchSport = ({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadMatches = async () => {
-      if (!tournamentSlug) {
-        setLoading(false);
-        return;
-      }
+    if (!tournamentSlug) {
+      setLoading(false);
+      return;
+    }
 
-      try {
-        const matchesData = await getMatchesBySport(tournamentSlug, sport);
+    setLoading(true);
+
+    // Subscribe to real-time updates
+    const unsubscribe = subscribeMatchesBySport(
+      tournamentSlug,
+      sport,
+      (matchesData) => {
         const { liveMatches: live, otherMatches } =
           separateLiveMatches(matchesData);
 
         setMatches(matchesData);
-        console.log("matchesData", matchesData);
         setLiveMatches(live);
 
         const categorized = categorizeMatchesByRound(otherMatches);
         setCategorizedMatches(categorized);
-      } catch (error) {
-        console.error("Error loading matches:", error);
-      } finally {
         setLoading(false);
-      }
-    };
+      },
+    );
 
-    loadMatches();
+    // Cleanup subscription on unmount
+    return () => {
+      unsubscribe();
+    };
   }, [tournamentSlug, sport]);
 
   const sportLabel = sport.toUpperCase();

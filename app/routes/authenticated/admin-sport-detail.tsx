@@ -683,9 +683,9 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                         type="number"
                         min={0}
                         value={
-                          matchFormData.homeScore ??
-                          selectedMatch.participants?.[0]?.resultText ??
-                          ""
+                          matchFormData.homeScore !== undefined
+                            ? matchFormData.homeScore
+                            : selectedMatch.participants?.[0]?.resultText ?? ""
                         }
                         onChange={(e) =>
                           setMatchFormData((prev) => ({
@@ -697,15 +697,6 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                         }
                         placeholder="0"
                       />
-                      <div className="mt-4 mx-auto">
-                        <Button
-                          type="button"
-                          onClick={() => handleShowImages(0)}
-                          disabled={isLoadingHistory}
-                        >
-                          {isLoadingHistory ? "Loading..." : "Show Images"}
-                        </Button>
-                      </div>
                     </div>
                     <div className="grid gap-1.5">
                       <Label htmlFor="away-score">Away Score</Label>
@@ -714,9 +705,9 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                         type="number"
                         min={0}
                         value={
-                          matchFormData.awayScore ??
-                          selectedMatch.participants?.[1]?.resultText ??
-                          ""
+                          matchFormData.awayScore !== undefined
+                            ? matchFormData.awayScore
+                            : selectedMatch.participants?.[1]?.resultText ?? ""
                         }
                         onChange={(e) =>
                           setMatchFormData((prev) => ({
@@ -728,15 +719,6 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                         }
                         placeholder="0"
                       />
-                      <div className="mt-4 mx-auto">
-                        <Button
-                          type="button"
-                          onClick={() => handleShowImages(1)}
-                          disabled={isLoadingHistory}
-                        >
-                          {isLoadingHistory ? "Loading..." : "Show Images"}
-                        </Button>
-                      </div>
                     </div>
                   </div>
 

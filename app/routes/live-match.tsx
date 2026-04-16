@@ -4,7 +4,7 @@ import { getSession } from "~/sessions.server";
 import { Button } from "~/lib/components/ui/button";
 import { getUserService } from "~/lib/services/user/getUserService";
 import { getActiveTournament } from "~/lib/services/tournaments/getActiveTournament";
-import { getSportsByTournament } from "~/lib/firebase/tournament-service";
+import { subscribeSportsByTournament } from "~/lib/firebase/tournament-service";
 
 export async function loader({ request }: { request: Request }) {
   const session = await getSession(request.headers.get("Cookie"));
@@ -37,23 +37,26 @@ const LiveMatch = ({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadSports = async () => {
-      if (!tournamentSlug) {
-        setLoading(false);
-        return;
-      }
+    if (!tournamentSlug) {
+      setLoading(false);
+      return;
+    }
 
-      try {
-        const sportsData = await getSportsByTournament(tournamentSlug);
+    setLoading(true);
+
+    // Subscribe to real-time updates
+    const unsubscribe = subscribeSportsByTournament(
+      tournamentSlug,
+      (sportsData) => {
         setSports(sportsData);
-      } catch (error) {
-        console.error("Error loading sports:", error);
-      } finally {
         setLoading(false);
       }
-    };
+    );
 
-    loadSports();
+    // Cleanup subscription on unmount
+    return () => {
+      unsubscribe();
+    };
   }, [tournamentSlug]);
 
   return (
