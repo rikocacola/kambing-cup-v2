@@ -35,7 +35,7 @@ const LiveMatch = ({
       {/* Navbar */}
       <header className="bg-white shadow-sm">
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
-          <span className="font-bold text-lg">Kambing Cup</span>
+          <span className="font-bold text-lg">Amaliah Cup</span>
           {!isLoggedIn ? (
             <Button size="sm" onClick={() => navigate("/login")}>
               Login

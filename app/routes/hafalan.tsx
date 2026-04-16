@@ -2,7 +2,17 @@ import { useState } from "react";
 import { useNavigate } from "react-router";
 import { Button } from "~/lib/components/ui/button";
 
+import agiLogoBlack from "~/lib/assets/images/agi-logo-black.png";
+import type { Route } from "./+types/hafalan";
+
 const BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+export function meta({}: Route.MetaArgs) {
+  return [
+    { title: "Hafalan - Amaliah Cup" },
+    { name: "description", content: "Hafalan for Amaliah Cup" },
+  ];
+}
 
 export async function clientLoader() {
   try {
@@ -78,9 +88,10 @@ const HafalanPage = ({
         <div className="max-w-3xl mx-auto px-4 sm:px-6 h-14 flex items-center justify-between">
           <button
             onClick={() => navigate("/")}
-            className="font-bold text-lg hover:opacity-70 transition-opacity"
+            className="font-bold text-lg hover:opacity-70 transition-opacity flex gap-2 items-center"
           >
-            Kambing Cup
+            <img src={agiLogoBlack} alt="AGI Logo" className="w-12 mx-auto" />
+            Amaliah Cup
           </button>
         </div>
       </header>
@@ -88,6 +99,11 @@ const HafalanPage = ({
       {/* Content */}
       <main className="max-w-md mx-auto px-4 sm:px-6 py-10 flex flex-col items-center gap-8">
         <div className="text-center">
+          <img
+            src={agiLogoBlack}
+            alt="AGI Logo"
+            className="w-32 mx-auto mb-4"
+          />
           <h1 className="text-2xl font-bold">Hafalan</h1>
           {totalSurah !== null && (
             <p className="text-sm text-gray-500 mt-1">Surah 1 – {totalSurah}</p>

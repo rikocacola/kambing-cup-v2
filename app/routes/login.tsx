@@ -6,8 +6,8 @@ import { loginService } from "~/lib/services/auth/loginService";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Login - Kambing Cup" },
-    { name: "description", content: "Login to Kambing Cup" },
+    { title: "Login - Amaliah Cup" },
+    { name: "description", content: "Login to Amaliah Cup" },
   ];
 }
 

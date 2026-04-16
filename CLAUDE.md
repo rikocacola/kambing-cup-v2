@@ -1,4 +1,4 @@
-# Kambing Cup V2
+# Amaliah Cup V2
 
 Tournament management system with live match tracking and hafalan features.
 

@@ -84,7 +84,7 @@ const LiveMatchSport = ({
             onClick={() => navigate("/")}
             className="font-bold text-lg hover:opacity-70 transition-opacity"
           >
-            Kambing Cup
+            Amaliah Cup
           </button>
           {!isLoggedIn && (
             <Button size="sm" onClick={() => navigate("/login")}>

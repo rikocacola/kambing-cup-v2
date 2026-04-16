@@ -21,8 +21,8 @@ import { BASE_URL } from "~/lib/services/auth/loginService";
 
 export function meta({}: Route.MetaArgs) {
   return [
-    { title: "Kambing Cup Dashboard" },
-    { name: "description", content: "Welcome to Kambing Cup" },
+    { title: "Amaliah Cup Dashboard" },
+    { name: "description", content: "Welcome to Amaliah Cup" },
   ];
 }
 
