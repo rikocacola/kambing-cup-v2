@@ -102,6 +102,14 @@ export async function clientAction({
     const awayIdRaw = formData.get("away_id") as string;
     const homeScoreRaw = formData.get("home_score") as string;
     const awayScoreRaw = formData.get("away_score") as string;
+    const startTimeRaw = formData.get("start_time") as string;
+
+    // Convert datetime-local to RFC3339 format
+    let startTimeRfc3339: string | null = null;
+    if (startTimeRaw) {
+      const date = new Date(startTimeRaw);
+      startTimeRfc3339 = date.toISOString();
+    }
 
     const response = await updateMatch({
       token,
@@ -113,6 +121,7 @@ export async function clientAction({
         home_score: homeScoreRaw !== "" ? Number(homeScoreRaw) : null,
         away_score: awayScoreRaw !== "" ? Number(awayScoreRaw) : null,
         state: "SOON",
+        start_time: startTimeRfc3339,
       },
     });
     return { ...response, _action };
@@ -198,6 +207,24 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
     return teams?.find((t) => t.id === id)?.name ?? "TBD";
   };
 
+  const formatDateTime = (dateTimeString?: string | null) => {
+    if (!dateTimeString) return "—";
+    try {
+      const date = new Date(dateTimeString);
+      return date.toLocaleDateString("en-GB", {
+        day: "2-digit",
+        month: "short",
+        year: "numeric",
+      }) + " " + date.toLocaleTimeString("en-GB", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      });
+    } catch {
+      return "—";
+    }
+  };
+
   const handleExcelImport = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !sport) return;
@@ -234,6 +261,8 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
       if (excelInputRef.current) excelInputRef.current.value = "";
     }
   };
+
+  console.log("match", matches);
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -392,11 +421,14 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
                               <button
                                 key={match.id}
                                 type="button"
-                                className="w-full flex items-center px-4 py-3 bg-white hover:bg-gray-50 transition-colors text-left"
+                                className="w-full flex flex-col px-4 py-3 bg-white hover:bg-gray-50 transition-colors text-left gap-2"
                                 onClick={() => setSelectedMatch(match)}
                               >
-                                <div>{match.round_id}</div>
-                                <div className="flex-1 flex items-center justify-between gap-4">
+                                <div className="flex items-center gap-2">
+                                  <span className="text-xs text-gray-500">{match.round_id}</span>
+                                  <span className="text-xs text-gray-400">{formatDateTime(match.start_time || match.start_date)}</span>
+                                </div>
+                                <div className="flex items-center justify-between gap-4">
                                   <span className="text-sm font-medium text-gray-800 flex-1 text-right">
                                     {getTeamName(match.home_id)}
                                   </span>
@@ -408,16 +440,20 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
                                     {getTeamName(match.away_id)}
                                   </span>
                                 </div>
-                                <span
-                                  className={cn(
-                                    "ml-4 text-xs px-2 py-0.5 rounded-full font-medium",
-                                    match.state === "DONE"
-                                      ? "bg-green-100 text-green-700"
-                                      : "bg-yellow-100 text-yellow-700",
-                                  )}
-                                >
-                                  {match.state}
-                                </span>
+                                <div className="flex justify-end">
+                                  <span
+                                    className={cn(
+                                      "text-xs px-2 py-0.5 rounded-full font-medium",
+                                      match.state === "DONE"
+                                        ? "bg-green-100 text-green-700"
+                                        : match.state === "LIVE"
+                                          ? "bg-red-100 text-red-700"
+                                          : "bg-yellow-100 text-yellow-700",
+                                    )}
+                                  >
+                                    {match.state}
+                                  </span>
+                                </div>
                               </button>
                             ))}
                           </div>
@@ -593,6 +629,22 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
                     placeholder="—"
                   />
                 </div>
+              </div>
+
+              <div className="grid w-full items-center gap-2">
+                <Label htmlFor="start-time">Start Time</Label>
+                <Input
+                  type="datetime-local"
+                  id="start-time"
+                  name="start_time"
+                  defaultValue={
+                    selectedMatch.start_time
+                      ? new Date(selectedMatch.start_time).toISOString().slice(0, 16)
+                      : selectedMatch.start_date
+                        ? new Date(selectedMatch.start_date).toISOString().slice(0, 16)
+                        : ""
+                  }
+                />
               </div>
 
               {actionData &&

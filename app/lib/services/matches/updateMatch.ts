@@ -17,6 +17,7 @@ export const updateMatch = async ({
     sport_id?: number | null;
     winner_id?: number| string | null;
     image?: File | null;
+    start_time?: string | null;
   };
 }): Promise<ApiResponse<unknown>> => {
   try {
@@ -35,6 +36,8 @@ export const updateMatch = async ({
     if (body.winner_id !== null && body.winner_id !== undefined)
       formData.append("winner_id", String(body.winner_id));
     if (body.image) formData.append("image", body.image);
+    if (body.start_time !== null && body.start_time !== undefined)
+      formData.append("start_time", body.start_time);
 
     const response = await authenticatedFetch({
       token,

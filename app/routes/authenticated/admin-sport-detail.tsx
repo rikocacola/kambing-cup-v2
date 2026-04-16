@@ -10,6 +10,8 @@ import { getAllTeams } from "~/lib/services/teams/getAllTeams";
 import type { IResponseDataTeam } from "~/lib/services/teams/getAllTeams";
 import { updateTeam } from "~/lib/services/teams/updateTeam";
 import { updateMatch } from "~/lib/services/matches/updateMatch";
+import { getMatchHistory } from "~/lib/services/matches/getMatchHistory";
+import type { IMatchHistoryImage } from "~/lib/services/matches/getMatchHistory";
 import { Button } from "~/lib/components/ui/button";
 import { Input } from "~/lib/components/ui/input";
 import { Label } from "~/lib/components/ui/label";
@@ -19,6 +21,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "~/lib/components/ui/dialog";
+import { ImageCarousel } from "~/lib/components/image-carousel";
 import { cn } from "~/lib/utils";
 import { resizeImageUnder2MB } from "~/lib/utils/resizeImage";
 import { BASE_URL } from "~/lib/services/auth/loginService";
@@ -29,6 +32,7 @@ interface IFirebaseParticipant {
   isWinner: boolean;
   name: string;
   teams_id?: string;
+  resultText?: string;
 }
 
 interface IFirebaseMatch {
@@ -102,6 +106,10 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
     awayScore?: number;
   }>({});
   const [showWinnerDialog, setShowWinnerDialog] = useState(false);
+  const [showImageCarousel, setShowImageCarousel] = useState(false);
+  const [historyImages, setHistoryImages] = useState<IMatchHistoryImage[]>([]);
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
+  const [carouselTitle, setCarouselTitle] = useState("");
   const imageInputRef = useRef<HTMLInputElement>(null);
   const matchImageInputRef = useRef<HTMLInputElement>(null);
 
@@ -296,6 +304,39 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
     setMatchFormData((prev) => ({ ...prev, image: file }));
   };
 
+  const handleShowImages = async (teamIndex: 0 | 1) => {
+    if (!selectedMatch) return;
+
+    const team = selectedMatch.participants[teamIndex];
+    if (!team?.teams_id) {
+      toast.error("Team ID not available");
+      return;
+    }
+
+    setIsLoadingHistory(true);
+    try {
+      const token = localStorage.getItem("accessToken") ?? "";
+      const res = await getMatchHistory({
+        token,
+        matchId: selectedMatch.matchId,
+        teamId: team.teams_id,
+      });
+
+      if (res.success && res.data?.data) {
+        setHistoryImages(res.data.data);
+        setCarouselTitle(team.name);
+        setShowImageCarousel(true);
+      } else {
+        toast.error(res.message || "Failed to load images");
+      }
+    } catch (error) {
+      console.error("Error loading images:", error);
+      toast.error("Failed to load images");
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
   console.log("selectedMatch", selectedMatch);
 
   return (
@@ -419,14 +460,20 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                                 onClick={() => setSelectedMatch(match)}
                               >
                                 <div className="flex-1 flex items-center justify-between gap-4">
+                                  <span className="bg-blue-300 text-blue-800 px-2 text-sm rounded-4xl">
+                                    {match.participants[0]?.resultText ?? "0"}
+                                  </span>
                                   <span className="text-sm font-medium text-gray-800 flex-1 text-right">
                                     {match.participants[0]?.name ?? "TBD"}
                                   </span>
                                   <span className="text-sm font-bold text-gray-400 px-2">
                                     vs
                                   </span>
-                                  <span className="text-sm font-medium text-gray-800 flex-1">
+                                  <span className="text-sm font-medium text-gray-800 flex-1 flex gap-2">
                                     {match.participants[1]?.name ?? "TBD"}
+                                  </span>
+                                  <span className="bg-blue-300 text-blue-800 px-2 text-sm rounded-4xl">
+                                    {match.participants[1]?.resultText ?? "0"}
                                   </span>
                                 </div>
                                 <span
@@ -434,7 +481,9 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                                     "ml-4 text-xs px-2 py-0.5 rounded-full font-medium shrink-0",
                                     match.state === "DONE"
                                       ? "bg-green-100 text-green-700"
-                                      : "bg-yellow-100 text-yellow-700",
+                                      : match.state === "LIVE"
+                                        ? "bg-red-200 text-red-700"
+                                        : "bg-yellow-100 text-yellow-700",
                                   )}
                                 >
                                   {match.state}
@@ -485,6 +534,25 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                 </span>
               </div>
 
+              <div className="flex items-center justify-between gap-4 py-2">
+                <Button
+                  type="button"
+                  onClick={() => handleShowImages(0)}
+                  disabled={isLoadingHistory}
+                  className="text-xs"
+                >
+                  {isLoadingHistory ? "Loading..." : "Show Images (Home Team)"}
+                </Button>
+                <Button
+                  type="button"
+                  onClick={() => handleShowImages(1)}
+                  disabled={isLoadingHistory}
+                  className="text-xs"
+                >
+                  {isLoadingHistory ? "Loading..." : "Show Images (Away Team)"}
+                </Button>
+              </div>
+
               {/* DONE — read-only */}
               {selectedMatch.state === "DONE" && (
                 <div className="flex flex-col gap-3 pt-1">
@@ -492,7 +560,9 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                     <div className="grid gap-1.5">
                       <Label>Home Score</Label>
                       <Input
-                        value={selectedMatch.homeScore ?? "-"}
+                        value={
+                          selectedMatch.participants?.[0]?.resultText ?? "0"
+                        }
                         disabled
                         className="bg-gray-50"
                       />
@@ -500,7 +570,9 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                     <div className="grid gap-1.5">
                       <Label>Away Score</Label>
                       <Input
-                        value={selectedMatch.awayScore ?? "-"}
+                        value={
+                          selectedMatch.participants?.[1]?.resultText ?? "0"
+                        }
                         disabled
                         className="bg-gray-50"
                       />
@@ -612,7 +684,7 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                         min={0}
                         value={
                           matchFormData.homeScore ??
-                          selectedMatch.homeScore ??
+                          selectedMatch.participants?.[0]?.resultText ??
                           ""
                         }
                         onChange={(e) =>
@@ -625,6 +697,15 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                         }
                         placeholder="0"
                       />
+                      <div className="mt-4 mx-auto">
+                        <Button
+                          type="button"
+                          onClick={() => handleShowImages(0)}
+                          disabled={isLoadingHistory}
+                        >
+                          {isLoadingHistory ? "Loading..." : "Show Images"}
+                        </Button>
+                      </div>
                     </div>
                     <div className="grid gap-1.5">
                       <Label htmlFor="away-score">Away Score</Label>
@@ -634,7 +715,7 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                         min={0}
                         value={
                           matchFormData.awayScore ??
-                          selectedMatch.awayScore ??
+                          selectedMatch.participants?.[1]?.resultText ??
                           ""
                         }
                         onChange={(e) =>
@@ -647,6 +728,15 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                         }
                         placeholder="0"
                       />
+                      <div className="mt-4 mx-auto">
+                        <Button
+                          type="button"
+                          onClick={() => handleShowImages(1)}
+                          disabled={isLoadingHistory}
+                        >
+                          {isLoadingHistory ? "Loading..." : "Show Images"}
+                        </Button>
+                      </div>
                     </div>
                   </div>
 
@@ -777,6 +867,28 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Image Carousel Dialog */}
+      <Dialog
+        open={showImageCarousel}
+        onOpenChange={(open) => {
+          if (!open) {
+            setShowImageCarousel(false);
+            setHistoryImages([]);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>{carouselTitle} - Match Images</DialogTitle>
+          </DialogHeader>
+          <ImageCarousel
+            images={historyImages}
+            onClose={() => setShowImageCarousel(false)}
+            title={carouselTitle}
+          />
         </DialogContent>
       </Dialog>
     </div>

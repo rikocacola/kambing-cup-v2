@@ -13,6 +13,7 @@ export interface IMatch {
   round: string;
   state: string;
   start_date: string;
+  start_time?: string | null;
   winner: number | null;
 }
 

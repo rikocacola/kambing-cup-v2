@@ -35,7 +35,7 @@ const StateBadge = ({ state }: { state: string }) => {
   const isLive = state === "LIVE";
   const colors: Record<string, string> = {
     LIVE: "bg-red-100 text-red-600",
-    FINISHED: "bg-gray-100 text-gray-500",
+    DONE: "bg-gray-100 text-gray-500",
     SOON: "bg-blue-100 text-blue-600",
   };
 
@@ -118,6 +118,7 @@ const LiveMatchSport = ({
           separateLiveMatches(matchesData);
 
         setMatches(matchesData);
+        console.log("matchesData", matchesData);
         setLiveMatches(live);
 
         const categorized = categorizeMatchesByRound(otherMatches);
