@@ -13,16 +13,28 @@ export const updateMatch = async ({
     away_id: number | null;
     home_score: number | null;
     away_score: number | null;
-    sport_id: number;
+    state: "SOON" | "LIVE" | "DONE";
+    sport_id?: number | null;
+    winner_id?: number| string | null;
+    image?: File | null;
   };
 }): Promise<ApiResponse<unknown>> => {
   try {
     const formData = new FormData();
-    if (body.sport_id !== undefined) formData.append("sport_id", String(body.sport_id));
-    if (body.home_id !== null && body.home_id !== undefined) formData.append("home_id", String(body.home_id));
-    if (body.away_id !== null && body.away_id !== undefined) formData.append("away_id", String(body.away_id));
-    if (body.home_score !== null && body.home_score !== undefined) formData.append("home_score", String(body.home_score));
-    if (body.away_score !== null && body.away_score !== undefined) formData.append("away_score", String(body.away_score));
+    if (body.sport_id !== undefined)
+      formData.append("sport_id", String(body.sport_id));
+    if (body.home_id !== null && body.home_id !== undefined)
+      formData.append("home_id", String(body.home_id));
+    if (body.away_id !== null && body.away_id !== undefined)
+      formData.append("away_id", String(body.away_id));
+    if (body.home_score !== null && body.home_score !== undefined)
+      formData.append("home_score", String(body.home_score));
+    if (body.away_score !== null && body.away_score !== undefined)
+      formData.append("away_score", String(body.away_score));
+    if (body.state) formData.append("state", body.state);
+    if (body.winner_id !== null && body.winner_id !== undefined)
+      formData.append("winner_id", String(body.winner_id));
+    if (body.image) formData.append("image", body.image);
 
     const response = await authenticatedFetch({
       token,

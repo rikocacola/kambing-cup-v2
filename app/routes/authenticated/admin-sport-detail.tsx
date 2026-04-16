@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams, useRevalidator } from "react-router";
-import { ref, onValue, off, update } from "firebase/database";
+import { ref, onValue, off } from "firebase/database";
 import { db } from "~/lib/firebase/firebase";
 import { toast } from "sonner";
 import { ChevronDown } from "lucide-react";
@@ -9,6 +9,7 @@ import type { IResponseDataSportDetail } from "~/lib/services/sports/getSport";
 import { getAllTeams } from "~/lib/services/teams/getAllTeams";
 import type { IResponseDataTeam } from "~/lib/services/teams/getAllTeams";
 import { updateTeam } from "~/lib/services/teams/updateTeam";
+import { updateMatch } from "~/lib/services/matches/updateMatch";
 import { Button } from "~/lib/components/ui/button";
 import { Input } from "~/lib/components/ui/input";
 import { Label } from "~/lib/components/ui/label";
@@ -27,6 +28,7 @@ interface IFirebaseParticipant {
   canEditTeams: boolean;
   isWinner: boolean;
   name: string;
+  teams_id?: string;
 }
 
 interface IFirebaseMatch {
@@ -40,6 +42,7 @@ interface IFirebaseMatch {
   homeScore?: number;
   awayScore?: number;
   image?: string;
+  matchId: number;
 }
 
 export function meta({}: Route.MetaArgs) {
@@ -85,10 +88,20 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
     "teams" | "matches" | null
   >("teams");
   const [openRound, setOpenRound] = useState<string | null>(null);
-  const [selectedTeam, setSelectedTeam] = useState<IResponseDataTeam | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState<IResponseDataTeam | null>(
+    null,
+  );
   const [isUpdatingTeam, setIsUpdatingTeam] = useState(false);
-  const [selectedMatch, setSelectedMatch] = useState<IFirebaseMatch | null>(null);
+  const [selectedMatch, setSelectedMatch] = useState<IFirebaseMatch | null>(
+    null,
+  );
   const [isSavingMatch, setIsSavingMatch] = useState(false);
+  const [matchFormData, setMatchFormData] = useState<{
+    image?: File;
+    homeScore?: number;
+    awayScore?: number;
+  }>({});
+  const [showWinnerDialog, setShowWinnerDialog] = useState(false);
   const imageInputRef = useRef<HTMLInputElement>(null);
   const matchImageInputRef = useRef<HTMLInputElement>(null);
 
@@ -172,60 +185,118 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
 
   const handleSaveMatch = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!selectedMatch || !slug || !sport?.slug) return;
+    if (!selectedMatch) return;
+
+    // Validate required fields for SOON state
+    if (selectedMatch.state === "SOON" && !matchFormData.image) {
+      toast.error("Image is required to start the match!");
+      return;
+    }
 
     setIsSavingMatch(true);
     try {
-      const form = new FormData(e.currentTarget);
-      const updates: Record<string, unknown> = {};
+      const token = localStorage.getItem("accessToken") ?? "";
+      const body: Parameters<typeof updateMatch>[0]["body"] = {
+        home_id: null,
+        away_id: null,
+        home_score: null,
+        away_score: null,
+        state: selectedMatch.state as "SOON" | "LIVE" | "DONE",
+        sport_id: sport.id,
+      };
 
-      const newState = form.get("state") as string;
-      if (newState) updates.state = newState;
+      console.log("selectedMatch", selectedMatch);
 
-      if (selectedMatch.state === "LIVE") {
-        const home = form.get("homeScore") as string;
-        const away = form.get("awayScore") as string;
-        if (home !== "") updates.homeScore = Number(home);
-        if (away !== "") updates.awayScore = Number(away);
+      // Handle SOON -> LIVE transition
+      if (selectedMatch.state === "SOON") {
+        body.state = "LIVE";
+        if (matchFormData.image) {
+          // Resize image to 2MB max and convert back to File
+          const resizedBase64 = await resizeImageUnder2MB(matchFormData.image);
+          const response = await fetch(resizedBase64);
+          const blob = await response.blob();
+          const resizedFile = new File([blob], matchFormData.image.name, {
+            type: "image/jpeg",
+          });
+          body.image = resizedFile;
+        }
       }
 
-      const matchRef = ref(
-        db,
-        `${slug}/sports/${sport.slug}/matches/${selectedMatch._key}`,
-      );
-      await update(matchRef, updates);
-      toast.success("Match updated!");
-      setSelectedMatch(null);
-    } catch {
+      // Handle LIVE state score updates
+      if (selectedMatch.state === "LIVE") {
+        const homeScore = matchFormData.homeScore;
+        const awayScore = matchFormData.awayScore;
+        if (homeScore !== undefined) body.home_score = homeScore;
+        if (awayScore !== undefined) body.away_score = awayScore;
+      }
+
+      const res = await updateMatch({
+        token,
+        id: selectedMatch.matchId,
+        body,
+      });
+
+      if (res.success) {
+        toast.success("Match updated!");
+        setSelectedMatch(null);
+        setMatchFormData({});
+      } else {
+        toast.error(res.message);
+      }
+    } catch (error) {
+      console.error("Error saving match:", error);
       toast.error("Failed to update match.");
     } finally {
       setIsSavingMatch(false);
     }
   };
 
-  const handleMatchImageUpload = async (
-    e: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = e.target.files?.[0];
-    if (!file || !selectedMatch || !slug || !sport?.slug) return;
+  const handleFinishMatch = () => {
+    setShowWinnerDialog(true);
+  };
+
+  const handleSelectWinner = async (winnerId: string) => {
+    if (!selectedMatch) return;
 
     setIsSavingMatch(true);
     try {
-      const base64 = await resizeImageUnder2MB(file);
-      const matchRef = ref(
-        db,
-        `${slug}/sports/${sport.slug}/matches/${selectedMatch._key}`,
-      );
-      await update(matchRef, { image: base64 });
-      toast.success("Match image updated!");
-      setSelectedMatch((prev) => (prev ? { ...prev, image: base64 } : null));
-    } catch {
-      toast.error("Failed to upload image.");
+      const token = localStorage.getItem("accessToken") ?? "";
+      const res = await updateMatch({
+        token,
+        id: selectedMatch.matchId,
+        body: {
+          home_id: null,
+          away_id: null,
+          home_score: null,
+          away_score: null,
+          state: "DONE",
+          winner_id: winnerId,
+        },
+      });
+
+      if (res.success) {
+        toast.success("Match finished!");
+        setSelectedMatch(null);
+        setShowWinnerDialog(false);
+        setMatchFormData({});
+      } else {
+        toast.error(res.message);
+      }
+    } catch (error) {
+      console.error("Error finishing match:", error);
+      toast.error("Failed to finish match.");
     } finally {
       setIsSavingMatch(false);
-      if (matchImageInputRef.current) matchImageInputRef.current.value = "";
     }
   };
+
+  const handleMatchImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setMatchFormData((prev) => ({ ...prev, image: file }));
+  };
+
+  console.log("selectedMatch", selectedMatch);
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -389,13 +460,16 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
       {/* Edit Match Dialog */}
       <Dialog
         open={!!selectedMatch}
-        onOpenChange={(open) => !open && setSelectedMatch(null)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedMatch(null);
+            setMatchFormData({});
+          }
+        }}
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>
-              {selectedMatch?.name ?? "Match"}
-            </DialogTitle>
+            <DialogTitle>{selectedMatch?.name ?? "Match"}</DialogTitle>
           </DialogHeader>
 
           {selectedMatch && (
@@ -417,16 +491,28 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                   <div className="grid grid-cols-2 gap-3">
                     <div className="grid gap-1.5">
                       <Label>Home Score</Label>
-                      <Input value={selectedMatch.homeScore ?? "-"} disabled className="bg-gray-50" />
+                      <Input
+                        value={selectedMatch.homeScore ?? "-"}
+                        disabled
+                        className="bg-gray-50"
+                      />
                     </div>
                     <div className="grid gap-1.5">
                       <Label>Away Score</Label>
-                      <Input value={selectedMatch.awayScore ?? "-"} disabled className="bg-gray-50" />
+                      <Input
+                        value={selectedMatch.awayScore ?? "-"}
+                        disabled
+                        className="bg-gray-50"
+                      />
                     </div>
                   </div>
                   <div className="grid gap-1.5">
                     <Label>State</Label>
-                    <Input value={selectedMatch.state} disabled className="bg-gray-50" />
+                    <Input
+                      value={selectedMatch.state}
+                      disabled
+                      className="bg-gray-50"
+                    />
                   </div>
                   {selectedMatch.image && (
                     <img
@@ -436,31 +522,26 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                     />
                   )}
                   <div className="flex justify-end">
-                    <Button variant="outline" onClick={() => setSelectedMatch(null)}>
+                    <Button
+                      variant="outline"
+                      onClick={() => setSelectedMatch(null)}
+                    >
                       Close
                     </Button>
                   </div>
                 </div>
               )}
 
-              {/* SOON — state change + image upload */}
+              {/* SOON — image upload to start match */}
               {selectedMatch.state === "SOON" && (
-                <form onSubmit={handleSaveMatch} className="flex flex-col gap-4 pt-1">
+                <form
+                  onSubmit={handleSaveMatch}
+                  className="flex flex-col gap-4 pt-1"
+                >
                   <div className="grid gap-1.5">
-                    <Label htmlFor="match-state-soon">State</Label>
-                    <select
-                      id="match-state-soon"
-                      name="state"
-                      defaultValue={selectedMatch.state}
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    >
-                      <option value="SOON">SOON</option>
-                      <option value="LIVE">LIVE</option>
-                    </select>
-                  </div>
-
-                  <div className="grid gap-1.5">
-                    <Label>Image</Label>
+                    <Label>
+                      Match Image <span className="text-red-600">*</span>
+                    </Label>
                     <input
                       ref={matchImageInputRef}
                       type="file"
@@ -468,7 +549,19 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                       className="hidden"
                       onChange={handleMatchImageUpload}
                     />
-                    {selectedMatch.image && (
+                    {matchFormData.image && (
+                      <>
+                        <img
+                          src={URL.createObjectURL(matchFormData.image)}
+                          alt="match"
+                          className="w-full rounded-lg object-cover max-h-40 mb-1"
+                        />
+                        <p className="text-sm text-gray-600">
+                          {matchFormData.image.name}
+                        </p>
+                      </>
+                    )}
+                    {selectedMatch.image && !matchFormData.image && (
                       <img
                         src={selectedMatch.image}
                         alt="match"
@@ -482,33 +575,54 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                       disabled={isSavingMatch}
                       onClick={() => matchImageInputRef.current?.click()}
                     >
-                      {isSavingMatch ? "Uploading..." : "Upload Image"}
+                      {matchFormData.image ? "Change Image" : "Select Image"}
                     </Button>
                   </div>
 
                   <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setSelectedMatch(null)}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedMatch(null);
+                        setMatchFormData({});
+                      }}
+                    >
                       Cancel
                     </Button>
                     <Button type="submit" disabled={isSavingMatch}>
-                      {isSavingMatch ? "Saving..." : "Save"}
+                      {isSavingMatch ? "Starting..." : "Start Match"}
                     </Button>
                   </div>
                 </form>
               )}
 
-              {/* LIVE — edit scores + state */}
+              {/* LIVE — edit scores + finish */}
               {selectedMatch.state === "LIVE" && (
-                <form onSubmit={handleSaveMatch} className="flex flex-col gap-4 pt-1">
+                <form
+                  onSubmit={handleSaveMatch}
+                  className="flex flex-col gap-4 pt-1"
+                >
                   <div className="grid grid-cols-2 gap-3">
                     <div className="grid gap-1.5">
                       <Label htmlFor="home-score">Home Score</Label>
                       <Input
                         id="home-score"
-                        name="homeScore"
                         type="number"
                         min={0}
-                        defaultValue={selectedMatch.homeScore ?? ""}
+                        value={
+                          matchFormData.homeScore ??
+                          selectedMatch.homeScore ??
+                          ""
+                        }
+                        onChange={(e) =>
+                          setMatchFormData((prev) => ({
+                            ...prev,
+                            homeScore: e.target.value
+                              ? Number(e.target.value)
+                              : undefined,
+                          }))
+                        }
                         placeholder="0"
                       />
                     </div>
@@ -516,39 +630,96 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                       <Label htmlFor="away-score">Away Score</Label>
                       <Input
                         id="away-score"
-                        name="awayScore"
                         type="number"
                         min={0}
-                        defaultValue={selectedMatch.awayScore ?? ""}
+                        value={
+                          matchFormData.awayScore ??
+                          selectedMatch.awayScore ??
+                          ""
+                        }
+                        onChange={(e) =>
+                          setMatchFormData((prev) => ({
+                            ...prev,
+                            awayScore: e.target.value
+                              ? Number(e.target.value)
+                              : undefined,
+                          }))
+                        }
                         placeholder="0"
                       />
                     </div>
                   </div>
 
-                  <div className="grid gap-1.5">
-                    <Label htmlFor="match-state-live">State</Label>
-                    <select
-                      id="match-state-live"
-                      name="state"
-                      defaultValue={selectedMatch.state}
-                      className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
-                    >
-                      <option value="LIVE">LIVE</option>
-                      <option value="DONE">DONE</option>
-                    </select>
-                  </div>
-
                   <div className="flex justify-end gap-2">
-                    <Button type="button" variant="outline" onClick={() => setSelectedMatch(null)}>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setSelectedMatch(null);
+                        setMatchFormData({});
+                      }}
+                    >
                       Cancel
                     </Button>
                     <Button type="submit" disabled={isSavingMatch}>
-                      {isSavingMatch ? "Saving..." : "Save"}
+                      {isSavingMatch ? "Saving..." : "Save Score"}
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      disabled={isSavingMatch}
+                      onClick={handleFinishMatch}
+                    >
+                      Finish Match
                     </Button>
                   </div>
                 </form>
               )}
             </>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Winner Selection Dialog */}
+      <Dialog
+        open={showWinnerDialog}
+        onOpenChange={(open) => !open && setShowWinnerDialog(false)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Select Winner</DialogTitle>
+          </DialogHeader>
+          {selectedMatch && (
+            <div className="flex flex-col gap-3 pt-2">
+              <p className="text-sm text-gray-600">
+                Select the winner for this match:
+              </p>
+              <div className="flex flex-col gap-2">
+                {selectedMatch.participants.map((team, idx) => (
+                  <Button
+                    key={idx}
+                    onClick={() => {
+                      if (team) {
+                        handleSelectWinner(team?.teams_id || "");
+                      }
+                    }}
+                    disabled={isSavingMatch}
+                    variant="outline"
+                    className="h-12 text-left"
+                  >
+                    <span className="font-semibold">{team?.name || "TBD"}</span>
+                  </Button>
+                ))}
+              </div>
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => setShowWinnerDialog(false)}
+                disabled={isSavingMatch}
+              >
+                Cancel
+              </Button>
+            </div>
           )}
         </DialogContent>
       </Dialog>

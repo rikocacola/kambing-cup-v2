@@ -112,6 +112,7 @@ export async function clientAction({
         away_id: awayIdRaw ? Number(awayIdRaw) : null,
         home_score: homeScoreRaw !== "" ? Number(homeScoreRaw) : null,
         away_score: awayScoreRaw !== "" ? Number(awayScoreRaw) : null,
+        state: "SOON",
       },
     });
     return { ...response, _action };
