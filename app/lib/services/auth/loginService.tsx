@@ -5,7 +5,7 @@ export const loginService = async (body: {
   password: string;
 }) => {
   try {
-    const response = await fetch(`${BASE_URL}auth/login`, {
+    const response = await fetch(`${BASE_URL}/auth/login`, {
       method: "POST",
       body: JSON.stringify(body),
     });

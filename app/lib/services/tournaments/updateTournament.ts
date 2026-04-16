@@ -10,13 +10,16 @@ export const updateTournament = async ({
   id: string;
   body: {
     name: string;
+    total_surah?: string;
     image?: File;
     is_active?: boolean;
   };
 }): Promise<ApiResponse<unknown>> => {
   try {
     const formData = new FormData();
+    console.log("Updating tournament with data:", body);
     formData.append("name", body.name);
+    formData.append("total_surah", body.total_surah || "0");
     formData.append("is_active", String(body.is_active ?? false));
     if (body.image) {
       formData.append("image", body.image);

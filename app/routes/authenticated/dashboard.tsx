@@ -1,5 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { useActionData, useNavigate, useNavigation, redirect } from "react-router";
+import {
+  useActionData,
+  useNavigate,
+  useNavigation,
+  redirect,
+} from "react-router";
 import { Pencil } from "lucide-react";
 import type { Route } from "./+types/dashboard";
 import {
@@ -53,8 +58,14 @@ export async function clientAction({ request }: Route.ClientActionArgs) {
     const name = formData.get("name") as string;
     const image = formData.get("image") as File;
     const is_active = formData.get("is_active") === "true";
+    const total_surah = formData.get("total_surah") as string;
 
-    const body: { name: string; image?: File; is_active: boolean } = { name, is_active };
+    const body: {
+      name: string;
+      image?: File;
+      is_active: boolean;
+      total_surah?: string;
+    } = { name, is_active, total_surah };
     if (image && image.size > 0) {
       body.image = image;
     }
@@ -110,7 +121,10 @@ const Dashboard = ({ loaderData }: Route.ComponentProps) => {
     navigate(`/dashboard/tournaments/${tournament.id}`);
   };
 
-  const handleEditClick = (e: React.MouseEvent, tournament: IResponseDataTournament) => {
+  const handleEditClick = (
+    e: React.MouseEvent,
+    tournament: IResponseDataTournament,
+  ) => {
     e.stopPropagation();
     setSelectedTournament(tournament);
     setDialogOpen(true);

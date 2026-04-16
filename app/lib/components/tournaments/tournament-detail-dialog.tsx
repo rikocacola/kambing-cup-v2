@@ -11,6 +11,7 @@ import { Form } from "react-router";
 import { Label } from "@radix-ui/react-label";
 import { Input } from "../ui/input";
 import type { IResponseDataTournament } from "~/lib/services/tournaments/getAllTournaments";
+import { BASE_URL } from "~/lib/services/auth/loginService";
 
 type TournamentDetailDialogProps = {
   tournament: IResponseDataTournament | null;
@@ -75,7 +76,7 @@ const TournamentDetailDialog = ({
               <Label htmlFor="image">Image (optional)</Label>
               {(previewUrl ?? tournament.image_url) && (
                 <img
-                  src={previewUrl ?? tournament.image_url}
+                  src={previewUrl ?? `${BASE_URL}/${tournament.image_url}`}
                   alt={tournament.name}
                   className="w-full h-36 object-cover rounded-md"
                 />

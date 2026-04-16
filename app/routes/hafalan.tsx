@@ -6,7 +6,7 @@ const BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 export async function clientLoader() {
   try {
-    const response = await fetch(`${BASE_URL}public/tournament/active`);
+    const response = await fetch(`${BASE_URL}/public/tournament/active`);
     if (!response.ok) return { totalSurah: null };
     const { data } = await response.json();
     return { totalSurah: (data?.total_surah as number) ?? null };
