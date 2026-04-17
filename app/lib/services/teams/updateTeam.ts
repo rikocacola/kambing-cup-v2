@@ -8,18 +8,17 @@ export const updateTeam = async ({
 }: {
   token: string;
   id: number;
-  body: { name?: string; company_name?: string; image?: File };
+  body: { name?: string; company_name?: string };
 }): Promise<ApiResponse<null>> => {
   try {
-    const formData = new FormData();
-    if (body.image) formData.append("image", body.image);
-    if (body.name !== undefined) formData.append("name", body.name);
-    if (body.company_name !== undefined) formData.append("company_name", body.company_name);
-
     const response = await authenticatedFetch({
       token,
       path: `team/${id}`,
-      options: { method: "PUT", body: formData },
+      options: {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      },
     });
 
     if (!response.ok) {
