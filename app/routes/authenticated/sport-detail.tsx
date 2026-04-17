@@ -211,15 +211,19 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
     if (!dateTimeString) return "—";
     try {
       const date = new Date(dateTimeString);
-      return date.toLocaleDateString("en-GB", {
-        day: "2-digit",
-        month: "short",
-        year: "numeric",
-      }) + " " + date.toLocaleTimeString("en-GB", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: false,
-      });
+      return (
+        date.toLocaleDateString("en-GB", {
+          day: "2-digit",
+          month: "short",
+          year: "numeric",
+        }) +
+        " " +
+        date.toLocaleTimeString("en-GB", {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: false,
+        })
+      );
     } catch {
       return "—";
     }
@@ -265,7 +269,7 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
   console.log("match", matches);
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-3xl mx-auto">
       <h1 className="text-2xl font-bold mb-1">{sport.name}</h1>
       {sport.tournament_name && (
         <p className="text-gray-500 text-sm mb-6">{sport.tournament_name}</p>
@@ -425,8 +429,14 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
                                 onClick={() => setSelectedMatch(match)}
                               >
                                 <div className="flex items-center gap-2">
-                                  <span className="text-xs text-gray-500">{match.round_id}</span>
-                                  <span className="text-xs text-gray-400">{formatDateTime(match.start_time || match.start_date)}</span>
+                                  <span className="text-xs text-gray-500">
+                                    {match.round_id}
+                                  </span>
+                                  <span className="text-xs text-gray-400">
+                                    {formatDateTime(
+                                      match.start_time || match.start_date,
+                                    )}
+                                  </span>
                                 </div>
                                 <div className="flex items-center justify-between gap-4">
                                   <span className="text-sm font-medium text-gray-800 flex-1 text-right">
@@ -581,7 +591,7 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
                     <option value="">TBD</option>
                     {teams?.map((team) => (
                       <option key={team.id} value={team.id}>
-                        {team.name}
+                        {team.company_name} - {team.name}
                       </option>
                     ))}
                   </select>
@@ -639,9 +649,13 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
                   name="start_time"
                   defaultValue={
                     selectedMatch.start_time
-                      ? new Date(selectedMatch.start_time).toISOString().slice(0, 16)
+                      ? new Date(selectedMatch.start_time)
+                          .toISOString()
+                          .slice(0, 16)
                       : selectedMatch.start_date
-                        ? new Date(selectedMatch.start_date).toISOString().slice(0, 16)
+                        ? new Date(selectedMatch.start_date)
+                            .toISOString()
+                            .slice(0, 16)
                         : ""
                   }
                 />
