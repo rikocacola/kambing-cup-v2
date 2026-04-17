@@ -10,6 +10,9 @@ import {
   separateLiveMatches,
   type Match,
 } from "~/lib/firebase/tournament-service";
+import TournamentBracket, {
+  SET_COLORS,
+} from "~/lib/components/bracket/TournamentBracket";
 
 export async function loader({
   request,
@@ -53,14 +56,6 @@ const StateBadge = ({ state }: { state: string }) => {
   );
 };
 
-const SET_COLORS = [
-  "bg-blue-200 text-blue-700",
-  "bg-green-200 text-green-700",
-  "bg-yellow-200 text-yellow-700",
-  "bg-purple-200 text-purple-700",
-  "bg-orange-200 text-orange-700",
-];
-
 const MatchCard = ({ match }: { match: Match }) => {
   const homeTeam = match.participants[0];
   const awayTeam = match.participants[1];
@@ -79,7 +74,10 @@ const MatchCard = ({ match }: { match: Match }) => {
           <div className="flex justify-between items-center gap-2">
             <div className="flex gap-1">
               {(homeTeam?.resultText || "0").split("|").map((score, i) => (
-                <p key={i} className={`${SET_COLORS[i % SET_COLORS.length]} px-2 py-1 rounded-lg text-sm`}>
+                <p
+                  key={i}
+                  className={`${SET_COLORS[i % SET_COLORS.length]} px-2 py-1 rounded-lg text-sm`}
+                >
                   {score}
                 </p>
               ))}
@@ -101,7 +99,10 @@ const MatchCard = ({ match }: { match: Match }) => {
             </p>
             <div className="flex gap-1">
               {(awayTeam?.resultText || "0").split("|").map((score, i) => (
-                <p key={i} className={`${SET_COLORS[i % SET_COLORS.length]} px-2 py-1 rounded-lg text-sm`}>
+                <p
+                  key={i}
+                  className={`${SET_COLORS[i % SET_COLORS.length]} px-2 py-1 rounded-lg text-sm`}
+                >
                   {score}
                 </p>
               ))}
@@ -130,6 +131,9 @@ const LiveMatchSport = ({
     Record<string, Match[]>
   >({});
   const [loading, setLoading] = useState(true);
+  const [activeTab, setActiveTab] = useState<"bracket" | "schedule">(
+    "bracket",
+  );
 
   useEffect(() => {
     if (!tournamentSlug) {
@@ -139,7 +143,6 @@ const LiveMatchSport = ({
 
     setLoading(true);
 
-    // Subscribe to real-time updates
     const unsubscribe = subscribeMatchesBySport(
       tournamentSlug,
       sport,
@@ -156,7 +159,6 @@ const LiveMatchSport = ({
       },
     );
 
-    // Cleanup subscription on unmount
     return () => {
       unsubscribe();
     };
@@ -192,7 +194,24 @@ const LiveMatchSport = ({
           ← Back
         </button>
 
-        <h1 className="text-2xl font-bold mb-6">{sportLabel}</h1>
+        <h1 className="text-2xl font-bold mb-4">{sportLabel}</h1>
+
+        {/* Tabs */}
+        <div className="flex border-b border-gray-200 mb-6">
+          {(["bracket", "schedule"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`px-4 py-2 text-sm font-medium border-b-2 capitalize transition-colors ${
+                activeTab === tab
+                  ? "border-gray-900 text-gray-900"
+                  : "border-transparent text-gray-400 hover:text-gray-600"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
 
         {loading ? (
           <p className="text-center text-gray-500 py-12">Loading matches...</p>
@@ -200,9 +219,11 @@ const LiveMatchSport = ({
           <p className="text-center text-gray-500 py-12">
             No matches available
           </p>
+        ) : activeTab === "bracket" ? (
+          <TournamentBracket matches={matches} />
         ) : (
           <div className="flex flex-col gap-8">
-            {/* Live Matches Section */}
+            {/* Live Matches */}
             <div className="flex flex-col gap-4">
               <h2 className="text-xl font-bold text-red-600">
                 🔴 Live Matches
