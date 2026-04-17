@@ -515,9 +515,22 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                               <button
                                 key={idx}
                                 type="button"
-                                className="w-full flex items-center px-4 py-3 bg-white hover:bg-gray-50 transition-colors text-left"
+                                className="w-full flex items-center px-4 py-3 bg-white hover:bg-gray-50 transition-colors text-left flex-col"
                                 onClick={() => setSelectedMatch(match)}
                               >
+
+                                <span
+                                  className={cn(
+                                    "ml-4 text-xs px-2 py-0.5 rounded-full font-medium shrink-0",
+                                    match.state === "DONE"
+                                      ? "bg-green-100 text-green-700"
+                                      : match.state === "LIVE"
+                                        ? "bg-red-200 text-red-700"
+                                        : "bg-yellow-100 text-yellow-700",
+                                  )}
+                                >
+                                  {match.state}
+                                </span>
                                 <div className="flex-1 flex items-center justify-between gap-4">
                                   <span className="bg-blue-300 text-blue-800 px-2 text-sm rounded-4xl">
                                     {match.participants[0]?.resultText ?? "0"}
@@ -535,18 +548,6 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                                     {match.participants[1]?.resultText ?? "0"}
                                   </span>
                                 </div>
-                                <span
-                                  className={cn(
-                                    "ml-4 text-xs px-2 py-0.5 rounded-full font-medium shrink-0",
-                                    match.state === "DONE"
-                                      ? "bg-green-100 text-green-700"
-                                      : match.state === "LIVE"
-                                        ? "bg-red-200 text-red-700"
-                                        : "bg-yellow-100 text-yellow-700",
-                                  )}
-                                >
-                                  {match.state}
-                                </span>
                               </button>
                             ))}
                           </div>
