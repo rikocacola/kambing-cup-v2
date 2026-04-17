@@ -608,7 +608,7 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
                     <option value="">TBD</option>
                     {teams?.map((team) => (
                       <option key={team.id} value={team.id}>
-                        {team.name}
+                        {team.company_name} - {team.name}
                       </option>
                     ))}
                   </select>
