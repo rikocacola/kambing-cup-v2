@@ -8,11 +8,13 @@ export const updateTeam = async ({
 }: {
   token: string;
   id: number;
-  body: { image: File };
+  body: { name?: string; company_name?: string; image?: File };
 }): Promise<ApiResponse<null>> => {
   try {
     const formData = new FormData();
-    formData.append("image", body.image);
+    if (body.image) formData.append("image", body.image);
+    if (body.name !== undefined) formData.append("name", body.name);
+    if (body.company_name !== undefined) formData.append("company_name", body.company_name);
 
     const response = await authenticatedFetch({
       token,

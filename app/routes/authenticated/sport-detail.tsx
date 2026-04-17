@@ -21,6 +21,7 @@ import { generateTeams } from "~/lib/services/teams/generateTeams";
 import { getMatches } from "~/lib/services/matches/getMatches";
 import type { IMatch } from "~/lib/services/matches/getMatches";
 import { updateMatch } from "~/lib/services/matches/updateMatch";
+import { updateTeam } from "~/lib/services/teams/updateTeam";
 import { Button } from "~/lib/components/ui/button";
 import { Input } from "~/lib/components/ui/input";
 import { Label } from "~/lib/components/ui/label";
@@ -96,6 +97,18 @@ export async function clientAction({
     return { ...response, _action };
   }
 
+  if (_action === "update_team") {
+    const teamId = Number(formData.get("team_id"));
+    const name = formData.get("name") as string;
+    const companyName = formData.get("company_name") as string;
+    const response = await updateTeam({
+      token,
+      id: teamId,
+      body: { name, company_name: companyName },
+    });
+    return { ...response, _action };
+  }
+
   if (_action === "update_match") {
     const matchId = Number(formData.get("match_id"));
     const homeIdRaw = formData.get("home_id") as string;
@@ -158,6 +171,7 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
   const [generateMatchesOpen, setGenerateMatchesOpen] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<IMatch | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState<IResponseDataTeam | null>(null);
   const [isImporting, setIsImporting] = useState(false);
   const excelInputRef = useRef<HTMLInputElement>(null);
 
@@ -180,6 +194,10 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
       if (actionData._action === "update_match") {
         setSelectedMatch(null);
         toast.success("Match updated successfully!");
+      }
+      if (actionData._action === "update_team") {
+        setSelectedTeam(null);
+        toast.success("Team updated successfully!");
       }
     } else {
       if (actionData.message) toast.error(actionData.message);
@@ -205,6 +223,11 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
   const getTeamName = (id: number | null) => {
     if (!id) return "TBD";
     return teams?.find((t) => t.id === id)?.name ?? "TBD";
+  };
+
+  const getCompanyName = (id: number | null) => {
+    if (!id) return null;
+    return teams?.find((t) => t.id === id)?.company_name ?? null;
   };
 
   const formatDateTime = (dateTimeString?: string | null) => {
@@ -265,8 +288,6 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
       if (excelInputRef.current) excelInputRef.current.value = "";
     }
   };
-
-  console.log("match", matches);
 
   return (
     <div className="max-w-3xl mx-auto">
@@ -335,14 +356,23 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
               {teams && teams.length > 0 ? (
                 <div className="flex flex-col gap-2">
                   {teams.map((team: IResponseDataTeam) => (
-                    <div
+                    <button
                       key={team.id}
-                      className="bg-gray-50 rounded-lg border border-gray-100 flex items-center px-4 py-3"
+                      type="button"
+                      className="w-full bg-gray-50 rounded-lg border border-gray-100 flex items-center px-4 py-3 hover:bg-gray-100 transition-colors text-left"
+                      onClick={() => setSelectedTeam(team)}
                     >
-                      <span className="flex-1 font-medium text-gray-800 text-sm">
-                        {team.name}
-                      </span>
-                    </div>
+                      <div className="flex flex-col flex-1">
+                        <span className="font-medium text-gray-800 text-sm">
+                          {team.name}
+                        </span>
+                        {team.company_name && (
+                          <span className="text-xs text-gray-400">
+                            {team.company_name}
+                          </span>
+                        )}
+                      </div>
+                    </button>
                   ))}
                 </div>
               ) : (
@@ -439,16 +469,30 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
                                   </span>
                                 </div>
                                 <div className="flex items-center justify-between gap-4">
-                                  <span className="text-sm font-medium text-gray-800 flex-1 text-right">
-                                    {getTeamName(match.home_id)}
-                                  </span>
+                                  <div className="flex-1 flex flex-col items-end">
+                                    <span className="text-sm font-medium text-gray-800">
+                                      {getTeamName(match.home_id)}
+                                    </span>
+                                    {getCompanyName(match.home_id) && (
+                                      <span className="text-xs text-gray-400">
+                                        {getCompanyName(match.home_id)}
+                                      </span>
+                                    )}
+                                  </div>
                                   <span className="text-sm font-bold text-gray-500 px-2">
                                     {match.home_score ?? "-"} :{" "}
                                     {match.away_score ?? "-"}
                                   </span>
-                                  <span className="text-sm font-medium text-gray-800 flex-1">
-                                    {getTeamName(match.away_id)}
-                                  </span>
+                                  <div className="flex-1 flex flex-col">
+                                    <span className="text-sm font-medium text-gray-800">
+                                      {getTeamName(match.away_id)}
+                                    </span>
+                                    {getCompanyName(match.away_id) && (
+                                      <span className="text-xs text-gray-400">
+                                        {getCompanyName(match.away_id)}
+                                      </span>
+                                    )}
+                                  </div>
                                 </div>
                                 <div className="flex justify-end">
                                   <span
@@ -515,6 +559,60 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
                 {isSubmitting && currentAction === "create_team"
                   ? "Creating..."
                   : "Create"}
+              </Button>
+            </div>
+          </Form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Team Dialog */}
+      <Dialog
+        open={!!selectedTeam}
+        onOpenChange={(open) => !open && setSelectedTeam(null)}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Team</DialogTitle>
+          </DialogHeader>
+          <Form className="flex flex-col gap-5 pt-2" method="POST">
+            <input type="hidden" name="_action" value="update_team" />
+            <input type="hidden" name="team_id" value={selectedTeam?.id ?? ""} />
+            <div className="grid w-full items-center gap-2">
+              <Label htmlFor="edit-team-name">Team Name</Label>
+              <Input
+                type="text"
+                id="edit-team-name"
+                name="name"
+                defaultValue={selectedTeam?.name ?? ""}
+                placeholder="Enter team name"
+                required
+              />
+            </div>
+            <div className="grid w-full items-center gap-2">
+              <Label htmlFor="edit-company-name">Company Name</Label>
+              <Input
+                type="text"
+                id="edit-company-name"
+                name="company_name"
+                defaultValue={selectedTeam?.company_name ?? ""}
+                placeholder="Enter company name"
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setSelectedTeam(null)}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={isSubmitting && currentAction === "update_team"}
+              >
+                {isSubmitting && currentAction === "update_team"
+                  ? "Saving..."
+                  : "Save"}
               </Button>
             </div>
           </Form>
