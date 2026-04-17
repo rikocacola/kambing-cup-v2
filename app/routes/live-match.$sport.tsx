@@ -135,6 +135,8 @@ const LiveMatchSport = ({
     "bracket",
   );
 
+  console.log("matches",matches)
+
   useEffect(() => {
     if (!tournamentSlug) {
       setLoading(false);

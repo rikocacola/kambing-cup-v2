@@ -8,7 +8,7 @@ export const updateTeam = async ({
 }: {
   token: string;
   id: number;
-  body: { name?: string; company_name?: string };
+  body: { name?: string; company_name?: string; sport_id?: number };
 }): Promise<ApiResponse<null>> => {
   try {
     const response = await authenticatedFetch({
@@ -31,7 +31,12 @@ export const updateTeam = async ({
       };
     }
 
-    return { success: true, data: null, error_code: "", message: "Team updated!" };
+    return {
+      success: true,
+      data: null,
+      error_code: "",
+      message: "Team updated!",
+    };
   } catch {
     return {
       success: false,

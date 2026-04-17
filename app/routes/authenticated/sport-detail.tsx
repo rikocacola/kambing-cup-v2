@@ -104,7 +104,11 @@ export async function clientAction({
     const response = await updateTeam({
       token,
       id: teamId,
-      body: { name, company_name: companyName },
+      body: {
+        name,
+        company_name: companyName,
+        sport_id: Number(params.sportId),
+      },
     });
     return { ...response, _action };
   }
@@ -171,7 +175,9 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
   const [createTeamOpen, setCreateTeamOpen] = useState(false);
   const [generateMatchesOpen, setGenerateMatchesOpen] = useState(false);
   const [selectedMatch, setSelectedMatch] = useState<IMatch | null>(null);
-  const [selectedTeam, setSelectedTeam] = useState<IResponseDataTeam | null>(null);
+  const [selectedTeam, setSelectedTeam] = useState<IResponseDataTeam | null>(
+    null,
+  );
   const [isImporting, setIsImporting] = useState(false);
   const excelInputRef = useRef<HTMLInputElement>(null);
 
@@ -576,7 +582,11 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
           </DialogHeader>
           <Form className="flex flex-col gap-5 pt-2" method="POST">
             <input type="hidden" name="_action" value="update_team" />
-            <input type="hidden" name="team_id" value={selectedTeam?.id ?? ""} />
+            <input
+              type="hidden"
+              name="team_id"
+              value={selectedTeam?.id ?? ""}
+            />
             <div className="grid w-full items-center gap-2">
               <Label htmlFor="edit-team-name">Team Name</Label>
               <Input
