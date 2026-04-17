@@ -3,7 +3,7 @@ import { useParams, useRevalidator } from "react-router";
 import { ref, onValue, off } from "firebase/database";
 import { db } from "~/lib/firebase/firebase";
 import { toast } from "sonner";
-import { ChevronDown } from "lucide-react";
+import { ChevronDown, X } from "lucide-react";
 import { getSport } from "~/lib/services/sports/getSport";
 import type { IResponseDataSportDetail } from "~/lib/services/sports/getSport";
 import { getAllTeams } from "~/lib/services/teams/getAllTeams";
@@ -12,6 +12,7 @@ import { updateTeam } from "~/lib/services/teams/updateTeam";
 import { updateMatch } from "~/lib/services/matches/updateMatch";
 import { getMatchHistory } from "~/lib/services/matches/getMatchHistory";
 import type { IMatchHistoryImage } from "~/lib/services/matches/getMatchHistory";
+import { getSportTeamHistory } from "~/lib/services/sports/getSportTeamHistory";
 import { Button } from "~/lib/components/ui/button";
 import { Input } from "~/lib/components/ui/input";
 import { Label } from "~/lib/components/ui/label";
@@ -102,9 +103,8 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
   const [isSavingMatch, setIsSavingMatch] = useState(false);
   const [matchFormData, setMatchFormData] = useState<{
     image?: File;
-    homeScore?: number;
-    awayScore?: number;
-  }>({});
+    sets: Array<{ home: string; away: string }>;
+  }>({ sets: [{ home: "", away: "" }] });
   const [showWinnerDialog, setShowWinnerDialog] = useState(false);
   const [showImageCarousel, setShowImageCarousel] = useState(false);
   const [historyImages, setHistoryImages] = useState<IMatchHistoryImage[]>([]);
@@ -144,6 +144,32 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
       off(dbRef);
     };
   }, [slug, sport?.slug]);
+
+  useEffect(() => {
+    if (!selectedMatch || selectedMatch.state !== "LIVE") return;
+
+    const homeText = selectedMatch.participants[0]?.resultText ?? "";
+    const awayText = selectedMatch.participants[1]?.resultText ?? "";
+
+    if (homeText && homeText !== "0" && homeText.includes("|")) {
+      const homeParts = homeText.split("|");
+      const awayParts = awayText.split("|");
+      setMatchFormData((prev) => ({
+        ...prev,
+        sets: homeParts.map((h, i) => ({ home: h, away: awayParts[i] ?? "" })),
+      }));
+    } else {
+      setMatchFormData((prev) => ({
+        ...prev,
+        sets: [
+          {
+            home: homeText && homeText !== "0" ? homeText : "",
+            away: awayText && awayText !== "0" ? awayText : "",
+          },
+        ],
+      }));
+    }
+  }, [selectedMatch]);
 
   if (!sport) {
     return (
@@ -232,10 +258,12 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
 
       // Handle LIVE state score updates
       if (selectedMatch.state === "LIVE") {
-        const homeScore = matchFormData.homeScore;
-        const awayScore = matchFormData.awayScore;
-        if (homeScore !== undefined) body.home_score = homeScore;
-        if (awayScore !== undefined) body.away_score = awayScore;
+        body.home_score = matchFormData.sets
+          .map((s) => s.home || "0")
+          .join("|");
+        body.away_score = matchFormData.sets
+          .map((s) => s.away || "0")
+          .join("|");
       }
 
       const res = await updateMatch({
@@ -247,7 +275,7 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
       if (res.success) {
         toast.success("Match updated!");
         setSelectedMatch(null);
-        setMatchFormData({});
+        setMatchFormData({ sets: [{ home: "", away: "" }] });
       } else {
         toast.error(res.message);
       }
@@ -275,8 +303,8 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
         body: {
           home_id: null,
           away_id: null,
-          home_score: null,
-          away_score: null,
+          home_score: matchFormData.sets.map((s) => s.home || "0").join("|"),
+          away_score: matchFormData.sets.map((s) => s.away || "0").join("|"),
           state: "DONE",
           winner_id: winnerId,
         },
@@ -286,7 +314,7 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
         toast.success("Match finished!");
         setSelectedMatch(null);
         setShowWinnerDialog(false);
-        setMatchFormData({});
+        setMatchFormData({ sets: [{ home: "", away: "" }] });
       } else {
         toast.error(res.message);
       }
@@ -304,6 +332,32 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
     setMatchFormData((prev) => ({ ...prev, image: file }));
   };
 
+  const addSet = () => {
+    setMatchFormData((prev) => ({
+      ...prev,
+      sets: [...prev.sets, { home: "", away: "" }],
+    }));
+  };
+
+  const removeSet = (index: number) => {
+    setMatchFormData((prev) => ({
+      ...prev,
+      sets: prev.sets.filter((_, i) => i !== index),
+    }));
+  };
+
+  const updateSet = (index: number, field: "home" | "away", value: string) => {
+    setMatchFormData((prev) => ({
+      ...prev,
+      sets: prev.sets.map((s, i) =>
+        i === index ? { ...s, [field]: value } : s,
+      ),
+    }));
+  };
+
+  const isThirdPlaceMatch = (match: IFirebaseMatch) =>
+    match._key === "2" || match.tournamentRoundText === "Perebutan juara 3";
+
   const handleShowImages = async (teamIndex: 0 | 1) => {
     if (!selectedMatch) return;
 
@@ -316,11 +370,18 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
     setIsLoadingHistory(true);
     try {
       const token = localStorage.getItem("accessToken") ?? "";
-      const res = await getMatchHistory({
-        token,
-        matchId: selectedMatch.matchId,
-        teamId: team.teams_id,
-      });
+      console.log("selectedMatch", selectedMatch);
+      const res = isThirdPlaceMatch(selectedMatch)
+        ? await getSportTeamHistory({
+            token,
+            sportId: sport.id,
+            teamId: team.teams_id,
+          })
+        : await getMatchHistory({
+            token,
+            matchId: selectedMatch.matchId,
+            teamId: team.teams_id,
+          });
 
       if (res.success && res.data?.data) {
         setHistoryImages(res.data.data);
@@ -336,8 +397,6 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
       setIsLoadingHistory(false);
     }
   };
-
-  console.log("selectedMatch", selectedMatch);
 
   return (
     <div className="max-w-2xl mx-auto">
@@ -512,7 +571,7 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
         onOpenChange={(open) => {
           if (!open) {
             setSelectedMatch(null);
-            setMatchFormData({});
+            setMatchFormData({ sets: [{ home: "", away: "" }] });
           }
         }}
       >
@@ -657,7 +716,7 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                       variant="outline"
                       onClick={() => {
                         setSelectedMatch(null);
-                        setMatchFormData({});
+                        setMatchFormData({ sets: [{ home: "", away: "" }] });
                       }}
                     >
                       Cancel
@@ -675,51 +734,69 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                   onSubmit={handleSaveMatch}
                   className="flex flex-col gap-4 pt-1"
                 >
-                  <div className="grid grid-cols-2 gap-3">
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="home-score">Home Score</Label>
-                      <Input
-                        id="home-score"
-                        type="number"
-                        min={0}
-                        value={
-                          matchFormData.homeScore !== undefined
-                            ? matchFormData.homeScore
-                            : selectedMatch.participants?.[0]?.resultText ?? ""
-                        }
-                        onChange={(e) =>
-                          setMatchFormData((prev) => ({
-                            ...prev,
-                            homeScore: e.target.value
-                              ? Number(e.target.value)
-                              : undefined,
-                          }))
-                        }
-                        placeholder="0"
-                      />
+                  <div className="flex flex-col gap-2">
+                    <div className="grid grid-cols-[3rem_1fr_1fr_1.5rem] items-center gap-2">
+                      <span />
+                      <Label className="text-center text-xs text-gray-500">
+                        Home
+                      </Label>
+                      <Label className="text-center text-xs text-gray-500">
+                        Away
+                      </Label>
+                      <span />
                     </div>
-                    <div className="grid gap-1.5">
-                      <Label htmlFor="away-score">Away Score</Label>
-                      <Input
-                        id="away-score"
-                        type="number"
-                        min={0}
-                        value={
-                          matchFormData.awayScore !== undefined
-                            ? matchFormData.awayScore
-                            : selectedMatch.participants?.[1]?.resultText ?? ""
-                        }
-                        onChange={(e) =>
-                          setMatchFormData((prev) => ({
-                            ...prev,
-                            awayScore: e.target.value
-                              ? Number(e.target.value)
-                              : undefined,
-                          }))
-                        }
-                        placeholder="0"
-                      />
-                    </div>
+
+                    {matchFormData.sets.map((set, index) => (
+                      <div
+                        key={index}
+                        className="grid grid-cols-[3rem_1fr_1fr_1.5rem] items-center gap-2"
+                      >
+                        <span className="text-xs text-gray-500 text-right pr-1">
+                          Set {index + 1}
+                        </span>
+                        <Input
+                          type="number"
+                          min={0}
+                          value={set.home}
+                          onChange={(e) =>
+                            updateSet(index, "home", e.target.value)
+                          }
+                          placeholder="0"
+                          className="text-center"
+                        />
+                        <Input
+                          type="number"
+                          min={0}
+                          value={set.away}
+                          onChange={(e) =>
+                            updateSet(index, "away", e.target.value)
+                          }
+                          placeholder="0"
+                          className="text-center"
+                        />
+                        {matchFormData.sets.length > 1 ? (
+                          <button
+                            type="button"
+                            onClick={() => removeSet(index)}
+                            className="text-gray-400 hover:text-red-500 transition-colors"
+                          >
+                            <X size={14} />
+                          </button>
+                        ) : (
+                          <span />
+                        )}
+                      </div>
+                    ))}
+
+                    {matchFormData.sets.length < 3 && (
+                      <button
+                        type="button"
+                        onClick={addSet}
+                        className="mt-1 w-full border border-dashed border-gray-300 rounded-md py-1.5 text-sm text-gray-500 hover:border-gray-400 hover:text-gray-700 transition-colors"
+                      >
+                        + Add Set
+                      </button>
+                    )}
                   </div>
 
                   <div className="flex justify-end gap-2">
@@ -728,7 +805,7 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                       variant="outline"
                       onClick={() => {
                         setSelectedMatch(null);
-                        setMatchFormData({});
+                        setMatchFormData({ sets: [{ home: "", away: "" }] });
                       }}
                     >
                       Cancel
@@ -767,21 +844,28 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                 Select the winner for this match:
               </p>
               <div className="flex flex-col gap-2">
-                {selectedMatch.participants.map((team, idx) => (
-                  <Button
-                    key={idx}
-                    onClick={() => {
-                      if (team) {
-                        handleSelectWinner(team?.teams_id || "");
-                      }
-                    }}
-                    disabled={isSavingMatch}
-                    variant="outline"
-                    className="h-12 text-left"
-                  >
-                    <span className="font-semibold">{team?.name || "TBD"}</span>
-                  </Button>
-                ))}
+                {selectedMatch.participants.map((team, idx) => {
+                  const scoreKey = idx === 0 ? "home" : "away";
+                  const scores = matchFormData.sets
+                    .map((s) => s[scoreKey] || "0")
+                    .join(" | ");
+                  return (
+                    <Button
+                      key={idx}
+                      onClick={() => {
+                        if (team) handleSelectWinner(team?.teams_id || "");
+                      }}
+                      disabled={isSavingMatch}
+                      variant="outline"
+                      className="h-12 justify-between px-4"
+                    >
+                      <span className="font-semibold">{team?.name || "TBD"}</span>
+                      <span className="text-sm text-gray-500 font-mono">
+                        {scores}
+                      </span>
+                    </Button>
+                  );
+                })}
               </div>
               <Button
                 type="button"

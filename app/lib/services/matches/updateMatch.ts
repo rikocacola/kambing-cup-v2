@@ -11,8 +11,8 @@ export const updateMatch = async ({
   body: {
     home_id: number | null;
     away_id: number | null;
-    home_score: number | null;
-    away_score: number | null;
+    home_score: number | string | null;
+    away_score: number | string | null;
     state: "SOON" | "LIVE" | "DONE";
     sport_id?: number | null;
     winner_id?: number| string | null;

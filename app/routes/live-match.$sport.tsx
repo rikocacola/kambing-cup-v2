@@ -53,6 +53,14 @@ const StateBadge = ({ state }: { state: string }) => {
   );
 };
 
+const SET_COLORS = [
+  "bg-blue-200 text-blue-700",
+  "bg-green-200 text-green-700",
+  "bg-yellow-200 text-yellow-700",
+  "bg-purple-200 text-purple-700",
+  "bg-orange-200 text-orange-700",
+];
+
 const MatchCard = ({ match }: { match: Match }) => {
   const homeTeam = match.participants[0];
   const awayTeam = match.participants[1];
@@ -68,10 +76,14 @@ const MatchCard = ({ match }: { match: Match }) => {
 
       <div className="flex items-center justify-between gap-2">
         <div className="flex-1 text-center">
-          <div className="flex justify-between items-center ">
-            <p className="bg-blue-300 text-blue-700 px-2 py-1 rounded-lg">
-              {homeTeam?.resultText || 0}
-            </p>
+          <div className="flex justify-between items-center gap-2">
+            <div className="flex gap-1">
+              {(homeTeam?.resultText || "0").split("|").map((score, i) => (
+                <p key={i} className={`${SET_COLORS[i % SET_COLORS.length]} px-2 py-1 rounded-lg text-sm`}>
+                  {score}
+                </p>
+              ))}
+            </div>
             <p className="text-sm sm:text-base font-semibold text-gray-800">
               {homeTeam?.name || "TBD"}
             </p>
@@ -83,13 +95,17 @@ const MatchCard = ({ match }: { match: Match }) => {
         </div>
 
         <div className="flex-1 text-center">
-          <div className="flex justify-between items-center ">
+          <div className="flex justify-between items-center gap-2">
             <p className="text-sm sm:text-base font-semibold text-gray-800">
               {awayTeam?.name || "TBD"}
             </p>
-            <p className="bg-blue-300 text-blue-700 px-2 py-1 rounded-lg ">
-              {awayTeam?.resultText || 0}
-            </p>
+            <div className="flex gap-1">
+              {(awayTeam?.resultText || "0").split("|").map((score, i) => (
+                <p key={i} className={`${SET_COLORS[i % SET_COLORS.length]} px-2 py-1 rounded-lg text-sm`}>
+                  {score}
+                </p>
+              ))}
+            </div>
           </div>
         </div>
       </div>
