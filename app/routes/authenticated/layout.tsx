@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Outlet, redirect } from "react-router";
 
 import type { Route } from "./+types/layout";
@@ -22,11 +23,20 @@ export async function clientLoader({}: Route.ClientLoaderArgs) {
 }
 
 const AuthenticatedLayout = ({ loaderData }: Route.ComponentProps) => {
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
   return (
     <div className="min-h-screen flex flex-col">
-      <Topbar userInfo={loaderData?.userInfo?.data?.data} />
+      <Topbar
+        userInfo={loaderData?.userInfo?.data?.data}
+        onMenuClick={() => setSidebarOpen(true)}
+      />
       <div className="flex flex-1">
-        <Sidebar role={loaderData?.userInfo?.data?.data?.role} />
+        <Sidebar
+          role={loaderData?.userInfo?.data?.data?.role}
+          isOpen={sidebarOpen}
+          onClose={() => setSidebarOpen(false)}
+        />
         <main className="flex-1 px-6 py-10 bg-gray-50">
           <Outlet />
         </main>

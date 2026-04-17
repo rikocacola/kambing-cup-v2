@@ -1,14 +1,17 @@
 import { useEffect, useRef, useState } from "react";
 import { Form } from "react-router";
+import { Menu } from "lucide-react";
 
 const Topbar = ({
   userInfo,
+  onMenuClick,
 }: {
   userInfo: {
     id: number;
     username?: string;
     role: string;
   };
+  onMenuClick?: () => void;
 }) => {
   const firstChar = userInfo?.username?.[0];
   const [isOpen, setIsOpen] = useState(false);
@@ -28,8 +31,15 @@ const Topbar = ({
   }, []);
 
   return (
-    <div className="h-15 w-full flex justify-end px-6 bg-white shadow-sm">
-      <div className="flex gap-3 items-center relative" ref={dropdownRef}>
+    <div className="h-15 w-full flex items-center justify-between px-6 bg-white shadow-sm">
+      <button
+        className="md:hidden p-1 rounded-md text-gray-600 hover:bg-gray-100"
+        onClick={onMenuClick}
+        aria-label="Toggle menu"
+      >
+        <Menu size={22} />
+      </button>
+      <div className="flex gap-3 items-center relative ml-auto" ref={dropdownRef}>
         <div
           className="rounded-full bg-black text-white size-10 flex items-center justify-center uppercase text-lg cursor-pointer select-none"
           onClick={() => setIsOpen((prev) => !prev)}

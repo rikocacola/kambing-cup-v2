@@ -131,11 +131,9 @@ const LiveMatchSport = ({
     Record<string, Match[]>
   >({});
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<"bracket" | "schedule">(
-    "bracket",
-  );
+  const [activeTab, setActiveTab] = useState<"bracket" | "schedule">("bracket");
 
-  console.log("matches",matches)
+  console.log("matches", matches);
 
   useEffect(() => {
     if (!tournamentSlug) {
