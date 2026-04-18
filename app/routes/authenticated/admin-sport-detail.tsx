@@ -221,12 +221,6 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
     e.preventDefault();
     if (!selectedMatch) return;
 
-    // Validate required fields for SOON state
-    if (selectedMatch.state === "SOON" && !matchFormData.image) {
-      toast.error("Image is required to start the match!");
-      return;
-    }
-
     setIsSavingMatch(true);
     try {
       const token = localStorage.getItem("accessToken") ?? "";
@@ -244,16 +238,6 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
       // Handle SOON -> LIVE transition
       if (selectedMatch.state === "SOON") {
         body.state = "LIVE";
-        if (matchFormData.image) {
-          // Resize image to 2MB max and convert back to File
-          const resizedBase64 = await resizeImageUnder2MB(matchFormData.image);
-          const response = await fetch(resizedBase64);
-          const blob = await response.blob();
-          const resizedFile = new File([blob], matchFormData.image.name, {
-            type: "image/jpeg",
-          });
-          body.image = resizedFile;
-        }
       }
 
       // Handle LIVE state score updates
@@ -594,12 +578,12 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                 </span>
               </div>
 
-              <div className="flex items-center justify-between gap-4 py-2">
+              <div className="flex items-center justify-between gap-4 py-2 w-full">
                 <Button
                   type="button"
                   onClick={() => handleShowImages(0)}
                   disabled={isLoadingHistory}
-                  className="text-xs"
+                  className="text-xs max-w-1/2"
                 >
                   {isLoadingHistory ? "Loading..." : "Show Images (Home Team)"}
                 </Button>
@@ -607,7 +591,7 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                   type="button"
                   onClick={() => handleShowImages(1)}
                   disabled={isLoadingHistory}
-                  className="text-xs"
+                  className="text-xs max-w-1/2"
                 >
                   {isLoadingHistory ? "Loading..." : "Show Images (Away Team)"}
                 </Button>
@@ -670,47 +654,6 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                   onSubmit={handleSaveMatch}
                   className="flex flex-col gap-4 pt-1"
                 >
-                  <div className="grid gap-1.5">
-                    <Label>
-                      Match Image <span className="text-red-600">*</span>
-                    </Label>
-                    <input
-                      ref={matchImageInputRef}
-                      type="file"
-                      accept="image/*"
-                      className="hidden"
-                      onChange={handleMatchImageUpload}
-                    />
-                    {matchFormData.image && (
-                      <>
-                        <img
-                          src={URL.createObjectURL(matchFormData.image)}
-                          alt="match"
-                          className="w-full rounded-lg object-cover max-h-40 mb-1"
-                        />
-                        <p className="text-sm text-gray-600">
-                          {matchFormData.image.name}
-                        </p>
-                      </>
-                    )}
-                    {selectedMatch.image && !matchFormData.image && (
-                      <img
-                        src={selectedMatch.image}
-                        alt="match"
-                        className="w-full rounded-lg object-cover max-h-32 mb-1"
-                      />
-                    )}
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={isSavingMatch}
-                      onClick={() => matchImageInputRef.current?.click()}
-                    >
-                      {matchFormData.image ? "Change Image" : "Select Image"}
-                    </Button>
-                  </div>
-
                   <div className="flex justify-end gap-2">
                     <Button
                       type="button"
@@ -800,7 +743,7 @@ const AdminSportDetail = ({ loaderData }: Route.ComponentProps) => {
                     )}
                   </div>
 
-                  <div className="flex justify-end gap-2">
+                  <div className="flex flex-wrap justify-end gap-2">
                     <Button
                       type="button"
                       variant="outline"

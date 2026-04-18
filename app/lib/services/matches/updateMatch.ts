@@ -15,7 +15,7 @@ export const updateMatch = async ({
     away_score: number | string | null;
     state: "SOON" | "LIVE" | "DONE";
     sport_id?: number | null;
-    winner_id?: number| string | null;
+    winner_id?: number | string | null;
     image?: File | null;
     start_time?: string | null;
   };
@@ -64,7 +64,8 @@ export const updateMatch = async ({
       error_code: "",
       message: "Match updated!",
     };
-  } catch {
+  } catch (error) {
+    console.error("Error updating match:", error);
     return {
       success: false,
       data: null,
