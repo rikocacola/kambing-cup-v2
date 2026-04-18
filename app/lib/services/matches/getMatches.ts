@@ -15,6 +15,7 @@ export interface IMatch {
   start_date: string;
   start_time?: string | null;
   winner: number | null;
+  winner_id?: number | null;
 }
 
 interface IDataMatches {

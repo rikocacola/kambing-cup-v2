@@ -128,6 +128,8 @@ export async function clientAction({
       startTimeRfc3339 = date.toISOString();
     }
 
+    const winnerIdRaw = formData.get("winner_id") as string;
+
     const response = await updateMatch({
       token,
       id: matchId,
@@ -137,7 +139,8 @@ export async function clientAction({
         away_id: awayIdRaw ? Number(awayIdRaw) : null,
         home_score: homeScoreRaw !== "" ? Number(homeScoreRaw) : null,
         away_score: awayScoreRaw !== "" ? Number(awayScoreRaw) : null,
-        state: "SOON",
+        state: (formData.get("state") as "SOON" | "LIVE" | "DONE") ?? "SOON",
+        winner_id: winnerIdRaw ? Number(winnerIdRaw) : null,
         start_time: startTimeRfc3339,
       },
     });
@@ -767,6 +770,42 @@ const SportDetail = ({ loaderData }: Route.ComponentProps) => {
                         : ""
                   }
                 />
+              </div>
+
+              <div className="grid w-full items-center gap-2">
+                <Label htmlFor="match-state">State</Label>
+                <select
+                  id="match-state"
+                  name="state"
+                  defaultValue={selectedMatch.state ?? "SOON"}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="SOON">SOON</option>
+                  <option value="LIVE">LIVE</option>
+                  <option value="DONE">DONE</option>
+                </select>
+              </div>
+
+              <div className="grid w-full items-center gap-2">
+                <Label htmlFor="winner-id">Winner</Label>
+                <select
+                  id="winner-id"
+                  name="winner_id"
+                  defaultValue={selectedMatch.winner ?? ""}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                >
+                  <option value="">No winner</option>
+                  {selectedMatch.home_id && (
+                    <option value={selectedMatch.home_id}>
+                      {getTeamName(selectedMatch.home_id)} (Home)
+                    </option>
+                  )}
+                  {selectedMatch.away_id && (
+                    <option value={selectedMatch.away_id}>
+                      {getTeamName(selectedMatch.away_id)} (Away)
+                    </option>
+                  )}
+                </select>
               </div>
 
               {actionData &&

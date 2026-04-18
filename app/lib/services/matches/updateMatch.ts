@@ -21,11 +21,17 @@ export const updateMatch = async ({
   };
 }): Promise<ApiResponse<unknown>> => {
   try {
+    console.log("body", body);
     const formData = new FormData();
     if (body.sport_id !== undefined)
       formData.append("sport_id", String(body.sport_id));
-    if (body.home_id !== null && body.home_id !== undefined)
-      formData.append("home_id", String(body.home_id));
+    // if (body.home_id !== null && body.home_id !== undefined)
+    formData.append(
+      "home_id",
+      body.home_id !== null && body.home_id !== undefined
+        ? String(body.home_id)
+        : "",
+    );
     if (body.away_id !== null && body.away_id !== undefined)
       formData.append("away_id", String(body.away_id));
     if (body.home_score !== null && body.home_score !== undefined)
